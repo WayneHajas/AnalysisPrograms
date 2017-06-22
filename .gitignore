@@ -1,0 +1,27 @@
+*.aux
+*.bbl
+*.blg
+*~*
+*.dll
+*.dvi
+*.eit
+*.exe
+*.log
+*.lot
+*.pdf
+*.ps
+*.pyc
+*.pyd
+*.toc
+# *.txt
+*.out
+*.snm
+*.nav
+*.synctex.gz*
+*.ui
+knitr-cache
+.RData
+.RHistory
+
+myNotes.*
+RSU/createEXE/build
