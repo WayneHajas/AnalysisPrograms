@@ -4,9 +4,9 @@ from mquantiles import mquantiles
 #from InterpProd import WCHinterp
 from wchNorm import InvNorm
 from BCA import Naive_CB
-import pdb
+from BetterThanRandom import BetterThanRandom
 
-def LevelFromList(x,n=None,newq=None,nlevel=31):
+def LevelFromList(x,n=None,newq=None,nlevel=1000):
     x2=sorted(x)
     oldn=len(x2)
     #oldq=list(map(lambda i: (i+.5)/float(oldn),   range(oldn)))
@@ -15,7 +15,7 @@ def LevelFromList(x,n=None,newq=None,nlevel=31):
     newLev=mquantiles(x2,useq)
     return(newLev)
 
-def LevelFromStErr(x,n=None,newq=None,nlevel=31):
+def LevelFromStErr(x,n=None,newq=None,nlevel=1000):
     EstVal=x[0]
     SteVal=x[1]
     useq=newq
@@ -25,7 +25,7 @@ def LevelFromStErr(x,n=None,newq=None,nlevel=31):
     result=list(map(lambda x: x+EstVal,result))
     return(result)
     
-def LevelFromDict(x,nlevel=31,newq=None):
+def LevelFromDict(x,nlevel=1000,newq=None):
     useq=newq
     if useq==None:useq=list(map(lambda i: (i+.5)/float(   nlevel),   range(   nlevel)))
     if isinstance(x,(list,ndarray)):
@@ -56,10 +56,10 @@ def BuildSequence(levels,index,randomize=True):
     if index>(-1+nlevel):return(None)
     if randomize:x=choice(x,replace=False,size=len(x))
 
-    result=list(map(lambda i: x[(i+index*(1+int(i/nlevel)))%nlevel   ]   ,range(nlevel*nlevel)))
+    result=BetterThanRandom(x,offset=index)
     return(result)
 
-def BuildSeqForDict(x,InitIndex, newq=None,randomize=True,nlevel=31):
+def BuildSeqForDict(x,InitIndex, newq=None,randomize=True,nlevel=1000):
     useq=newq
     if useq==None:useq=list(map(lambda i: (i+.5)/float(   nlevel),   range(   nlevel)))
     levels=LevelFromDict(x,newq=useq)
@@ -69,21 +69,26 @@ def BuildSeqForDict(x,InitIndex, newq=None,randomize=True,nlevel=31):
         BuildSequence(levels['MW'            ],InitIndex+2,randomize=True)]
     return(result)
 
-def CalcOverallStats(SiteVal, newq=None,randomize=True,CB=[99,95,90,75,50],nlevel=31):
+def CalcOverallStats(SiteVal, newq=None,randomize=True,CB=[99,95,90,75,50],nlevel=10000):
     useq=newq
     if useq==None:useq=list(map(lambda i: (i+.5)/float(   nlevel),   range(   nlevel)))
     nsite=len(SiteVal)
+    isit=range(nsite)
 
     ParamVal=list(map(lambda x,i:BuildSeqForDict(x,3*i, newq=newq,randomize=randomize),SiteVal,range(nsite)))
     PopDens=list(map(lambda x:x[0],ParamVal))
     CoastLe=list(map(lambda x:x[1],ParamVal))
     MeanWgt=list(map(lambda x:x[2],ParamVal))
+    
+    iter=range(len(PopDens[0]))
 
-    iiter=list(range(len(ParamVal[0][0])))
+    SitePop=[ [PopDens[s][i]*CoastLe[s][i]  for  i in iter]      for s in isit]
+    SiteBma=[ [SitePop[s][i]*MeanWgt[s][i]  for  i in iter]      for s in isit]
 
-    TotalCL=list(map(lambda i:sum(list(map(lambda c:  c[i],CoastLe)))                           ,iiter))
-    TotaPop=list(map(lambda i:sum(list(map(lambda p,c:p[i]*c[i],PopDens,CoastLe)))              ,iiter))
-    TotaBma=list(map(lambda i:sum(list(map(lambda p,c,w:p[i]*c[i]*w[i],PopDens,CoastLe,MeanWgt))) ,iiter))
+    TotalCL=[sum([CoastLe[s][i]  for s in isit])   for i in iter ]
+    TotaPop=[sum([SitePop[s][i]  for s in isit])   for i in iter ]
+    TotaBma=[sum([SiteBma[s][i]  for s in isit])   for i in iter ]
+    
 
 
     PopDens=list(map(lambda p,c:p/c, TotaPop,TotalCL))
@@ -116,7 +121,7 @@ if __name__ == "__main__":
     MW=[266,26.6]
 
 
-    nlevel=200
+    nlevel=10000
     newq=list(map(lambda i: (i+.5)/float(   nlevel),   range(   nlevel)))
     SampPopDensity=list(map(lambda x: lognorm.isf(x,1),newq))
     asDict={'SampPopDensity':SampPopDensity,'CL':CL,'MW':MW}

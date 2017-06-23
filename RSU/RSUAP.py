@@ -1,3 +1,23 @@
+'''
+
+2015-11-23.  Modified code to use CopyMDB to write stubbs-of-input to output.
+
+20150821.  Commented out lines (233-236 and 244-248).  These are the lines that copy
+an abbreviated version of the input-mdb to the output-mdb.  The abbreviated-input issue is getting
+deferred so that a decision can be made for all the analyis programs.  A high-priority change has come up
+for RUAP and I don't want to deal with the abbreviated input.
+
+2015-11-30
+Added more status-indicators to the console output.  Should make the waiting easier.
+
+2017-06-20
+Coordinate StatArea and SubArea in the main window. If Subarea is selected, select stat-area too.
+If StatArea is unselected, unselect subarea.
+
+Fixed a minor error.  Now site# will appear in the progress-indicator.
+
+'''
+ 
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'RSUAP.ui'
@@ -7,8 +27,8 @@
 #
 # WARNING! All changes made in this file will be lost!
 from numpy.random import seed
-from numpy import inf
-import pdb
+from numpy import inf,iinfo,int16
+MinInt=iinfo(int16).min
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import QAbstractListModel,QModelIndex
@@ -17,12 +37,13 @@ from PyQt4.QtGui import QListWidgetItem
 from MetaTransectClass import MetaTransectClass
 import RSUQueryFunc as QueryFunc
 from RSUQueryFunc import AlloEqn
+from CopyMDB import CopyMDB
 
 import sys,os
 #sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from GetSurveys import AllSurveys
 from ADO import adoBaseClass as OpenDB
-from transectclass import transectclass
+from RSUTransectClass import transectclass
 from NewMDB import NewMDB
 from InputOutputMDB import dataODB,resultODB
 
@@ -50,7 +71,6 @@ class Ui_Dialog(object):
         self.resultODB=OUTmdb
         self.OUTmdb=self.resultODB.ODB
         self.ODB=self.inMDB.ODB
-        #pdb.set_trace()
         self.FillSurveys()
         self.FillTranChar()
         self.MakeConnect()
@@ -61,7 +81,6 @@ class Ui_Dialog(object):
         Dialog.resize(692, 769)
         font = QtGui.QFont()
         font.setPointSize(12)
-        #pdb.set_trace()
         Dialog.setFont(font)
 
         
@@ -176,8 +195,8 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(_translate("Dialog", "Red Sea Urchin Analysis Program", None))
         self.AllSurveys.setText(_translate("Dialog", "Do All Surveys?", None))
-        self.label.setText(_translate("Dialog", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Survey</span></p></body></html>", None))
-        self.label_2.setText(_translate("Dialog", "<html><head/><body><p align=\"center\"><span style=\" font-size:12pt;\">Transect Characteristics</span></p></body></html>", None))
+        self.label.setText(_translate("Dialog", "<html><head/><body><p align=\"center\"><span style=\" font-size:9pt;\">Data to Analyze [Source] [Year] [Location]:</span></p></body></html>", None))
+        self.label_2.setText(_translate("Dialog", "<html><head/><body><p align=\"center\"><span style=\" font-size:9pt;\">Analyze by:</span></p></body></html>", None))
         self.groupBox_2.setTitle(_translate("Dialog", "Upper Size Bounds (mm)", None))
         self.USB50.setToolTip(_translate("Dialog", "<html><head/><body><p align=\"right\"><span style=\" font-size:12pt;\"><br/></span></p></body></html>", None))
         self.USB50.setText(_translate("Dialog", "50", None))
@@ -203,7 +222,7 @@ class Ui_Dialog(object):
 
     def FillSurveys(self):
         self.AS=AllSurveys(self.ODB)
-        FullName=self.AS.GetSurvey()
+        FullName=self.AS.GetCombo()
         for fn in FullName:
             item=QListWidgetItem(fn)
             self.AvailSurveys.addItem(item)
@@ -213,14 +232,13 @@ class Ui_Dialog(object):
         for fieldname in ['SurveyTitle','Location','SiteNum','Year','StatArea','SubArea','InBed']:
             item=QListWidgetItem(fieldname)
             self.TransectCharacteristics.addItem(item)
-        #pdb.set_trace()
         self.TransectCharacteristics.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
 
     def MakeConnect(self):
-        #pdb.set_trace()
         self.DoCalcs.clicked.connect(self.Calculations)
         self.QuitBttn.clicked.connect(self.QuitCalcs)
         self.AllSurveys.stateChanged.connect(self.DoAllSurveys)
+        self.TransectCharacteristics.itemSelectionChanged.connect(self.CoordStatAreaSubArea)
 
     def Calculations(self):
         print ('Calculations Started')
@@ -228,19 +246,32 @@ class Ui_Dialog(object):
         self.GetSelectedSurveys()
         self.GetSelectedTranChar()
         self.GetSelectedUppSizeBound()
-        #pdb.set_trace()
         self.TranClassChar=MetaTransectClass(self.ODB,\
                                              self.SelectedSurveys,\
                                              self.SelectedTranchar   )
                                              
         self.PrepOUTmdb()
-        #print ('\nRSUAP 237 about to start stats, self.TranClassChar.key')
-        #for x in self.TranClassChar.key:print(x)
+        dictSelectedSurveys=self.SelectedSurveystoDict()
+        CopyMDB(self.ODB,  self.OUTmdb ,dictSelectedSurveys)      
+        
        
         CB=[99,95,90,75,50]
         nboot=int(self.NumberBootstrap.document().toPlainText())
 
         for i in range(self.TranClassChar.nclass):
+            
+            FTC=self.TranClassChar.FormatTranClass(i)
+                
+            print('\n')
+            if FTC['SurveyTitle']!='Combined': print('SurveyTitle:     ',FTC['SurveyTitle'    ])
+            if FTC['Location'   ]!='Combined': print('Location:     ',FTC['Location'    ])
+            if FTC['Year'       ]!=MinInt: print('Year:     ',FTC['Year'    ])
+            if FTC['Site'       ]!=MinInt: print('Site:     ',FTC['Site'    ])
+            if FTC['StatArea'   ]!=MinInt: print('StatArea: ',FTC['StatArea'] )
+            if FTC['SubArea'    ]!=MinInt: print('SubArea:  ',FTC['SubArea' ] )
+            
+            print(len(self.TranClassChar.key[i]), ' transects')
+            
             
             tc=transectclass(self.ODB,self.TranClassChar.key[i],self.TranClassChar.Allo[i],QueryFunc,\
                                           SizeBound=self.UppSizeBnd,\
@@ -249,29 +280,29 @@ class Ui_Dialog(object):
             CurDeterm=tc.GetFormatEstVal()
             CurCB=tc.GetPctCB(CB,nboot=nboot)
 
-            FTC=self.TranClassChar.FormatTranClass(i)
             #Transect Classes
             self.OUTmdb.ADDTo_TranChar(FTC['SurveyTitle'],FTC['Location'],FTC['SiteNum'],FTC['Year'],FTC['StatArea'],FTC['SubArea'],FTC['InBed'],FTC['NumTran'],\
-                                  tc.GetSurveyedArea())
+                                  tc.GetSurveyedArea(),tc.GetNumSurveyedQuadInDepthRange())
             tck=self.OUTmdb.GetTranCharKey(FTC['SurveyTitle'],FTC['Location'],FTC['SiteNum'],FTC['Year'],FTC['StatArea'],FTC['SubArea'],FTC['InBed'])
+            tc.WriteTransectResults(self.OUTmdb,tck)
 
             #The confidence bounds
-            for cbResult in CurCB:
-                CBval=cbResult['CB']
-                SN=list(filter(lambda x:x!='CB', cbResult.keys()))
-                for sn in SN:                             
-                        CurSize=cbResult[sn]
-                        SK=self.OUTmdb.GetSizeRangeKey(CurSize['SizeLimit'][-1])
-                        #pdb.set_trace()
-
-                        self.OUTmdb.ADDTo_ConfInterval(\
-                            tck,SK,\
-                            CBval,\
-                           CurSize['linear']['Pop'][0], CurSize['linear']['Pop'][1], \
-                           CurSize['spatial']['Pop'][0], CurSize['spatial']['Pop'][1], \
-                            
-                           CurSize['linear']['Bmass'][0], CurSize['linear']['Bmass'][1], \
-                           CurSize['spatial']['Bmass'][0], CurSize['spatial']['Bmass'][1])
+            if (CurCB!=None):
+                for cbResult in CurCB:
+                    CBval=cbResult['CB']
+                    SN=list(filter(lambda x:x!='CB', cbResult.keys()))
+                    for sn in SN:                             
+                            CurSize=cbResult[sn]
+                            SK=self.OUTmdb.GetSizeRangeKey(CurSize['SizeLimit'][-1])
+    
+                            self.OUTmdb.ADDTo_ConfInterval(\
+                                tck,SK,\
+                                CBval,\
+                               CurSize['linear']['Pop'][0], CurSize['linear']['Pop'][1], \
+                               CurSize['spatial']['Pop'][0], CurSize['spatial']['Pop'][1], \
+                                
+                               CurSize['linear']['Bmass'][0], CurSize['linear']['Bmass'][1], \
+                               CurSize['spatial']['Bmass'][0], CurSize['spatial']['Bmass'][1])
                                 
                
             #The estimated values
@@ -282,7 +313,7 @@ class Ui_Dialog(object):
                     CurSize['linear']['Pop'],CurSize['spatial']['Pop'],\
                     CurSize['linear']['Bmass'],CurSize['spatial']['Bmass'],\
                     TranCharKey=tck,SizeKey=SK)
-                
+  
         print('\ndone MainWindow Line 274')
 
              
@@ -307,14 +338,12 @@ class Ui_Dialog(object):
         
     def GetSelectedSurveys(self):
         self.SelectedSurveys=[]
+        year=self.AS.GetYear()
         survey=self.AS.GetSurvey()
         for index in range(self.AvailSurveys.count()):
             if self.AvailSurveys.item(index).isSelected():
-                try:
-                  self.SelectedSurveys+=[survey[index]]
-                except:
-                  pdb.set_trace()
-                  self.SelectedSurveys+=[survey[index]]
+                self.SelectedSurveys+=[[survey[index],year[index]]]
+
                 
     def DoAllSurveys(self):
         if self.AllSurveys.isChecked():
@@ -324,13 +353,26 @@ class Ui_Dialog(object):
             for index in range(self.AvailSurveys.count()):
                 self.AvailSurveys.item(index).setSelected(False)
             
+    def CoordStatAreaSubArea(self):
+        '''Make sure statarea and subarea are coherent'''
+        #Update list of selected transect-characteristics
+        self.GetSelectedTranChar()
+        
+        #if subarea is selected, force statarea to be selected        
+        if ('SubArea' in self.SelectedTranchar) and not('StatArea' in self.SelectedTranchar) :
+            for index in range(self.TransectCharacteristics.count()):
+                if self.TransectCharacteristics.item(index).text()=='StatArea':
+                    self.TransectCharacteristics.item(index).setSelected(True)
+                    self.GetSelectedTranChar()
+        
+                
         
     def QuitCalcs(self):
         print ('No Calculations')
         sys.exit(app.exec_())
 
     def DefaultSettings(self):
-        self.NumberBootstrap.insertPlainText('1000')
+        self.NumberBootstrap.insertPlainText('10000')
         self.RandomSeed.insertPlainText('756')
         self.MinDepth.insertPlainText('-1000')
         self.MaxDepth.insertPlainText('1000')
@@ -351,7 +393,15 @@ class Ui_Dialog(object):
             self.OUTmdb.ADDTo_SizeRange(1+self.UppSizeBnd[x-1],self.UppSizeBnd[x]  )
 
         for sy in self.SelectedSurveys:
-            self.OUTmdb.ADDTo_SurveyUsed(sy)
+            self.OUTmdb.ADDTo_SurveyUsed(sy[0],sy[1])            
+           
+    def SelectedSurveystoDict(self):
+        '''Convert self.SelectedSurveys as a list of dictionaries'''
+        if isinstance(self.SelectedSurveys[0],dict):
+            return(self.SelectedSurveys)
+        result=[{'Location':t[0], 'Year':t[1]}  for t in self.SelectedSurveys]
+        return(result)
+
 
        
 

@@ -4,7 +4,6 @@ MinInt=iinfo(int16).min
 from numpy.random import choice
 from norm import norm
 from numpy.random import shuffle
-import pdb
 
 class SiteSize():
     def __init__(self,ODB,survey,year,site,ListTransects=None):
@@ -26,6 +25,9 @@ class SiteSize():
         self.ListTransects=ListTransects
         self.CalcDigitizedArea()
         self.AreaFromLOBF()
+        
+        #Area of surveyed transects in the depth-range.  Includes unsurveyed transects.
+        self.TranArea=sum(list(map(lambda t: t.GetQuadArea(),self.ListTransects)))
 
     def ReviseTranLen(self,ListTransects=None):
         self.ListTransects=ListTransects
@@ -133,7 +135,6 @@ class SiteSize():
             print('SiteSize 117')
             print('MTL',MTL)
             print('len(self.ListTransects) ' , len(self.ListTransects) )
-            pdb.set_trace()
             if(len(self.ListTransects)>1):
                 self.LOBFarea=norm(MTL[0]*self.LOBF,MTL[1]*self.LOBF)
                 return
@@ -144,7 +145,7 @@ class SiteSize():
 
         self.LOBFarea=norm(MinInt,0.)
     def RandAreaFromLOBF(self,n=None):
-        return(self.LOBFarea.rvs(n))
+        return(self.LOBFarea.rvs(n,LowBound=self.TranArea))
         
     def GetArea(self,Digitized=True):
         if Digitized: return(self.GetDigitizedArea())
@@ -161,10 +162,10 @@ class SiteSize():
         result=self.DigitizedArea.isf(p)
         return(result)
     def GetEquiProbArea(self,n,Digitized=True):
-        if Digitized:return(self.EquiProbVal(n))
+        if Digitized:return(self.DigitizedArea.EquiProbVal(n,LowBound=self.TranArea))
 
         #Area based on line-of-best-fit
-        return(self.LOBFarea(n))
+        return(self.LOBFarea.EquiProbVal(n,LowBound=self.TranArea))
                             
         
         
@@ -172,8 +173,8 @@ class SiteSize():
         if Digitized:return(self.DigitizedArea.sigma)
         return(self.LOBFarea.sigma)
     def GetRandomArea(self,n=1000,RunNumber=4,EquiProb=True):
-            if RunNumber==4:return(self.DigitizedArea.rvs(n=n))
-            elif RunNumber==2:return(self.LOBFarea.rvs(n=n))
+            if RunNumber==4:return(self.DigitizedArea.rvs(n=n,LowBound=self.TranArea))
+            elif RunNumber==2:return(self.LOBFarea.rvs(n=n,LowBound=self.TranArea))
             if n==None:return(MinInt)
             return(array(n*[MinInt]))
         
@@ -188,6 +189,7 @@ class CopySiteSize(SiteSize):
         self.DigitizedArea=oriSiteSize.DigitizedArea
         self.ListTransects=ListTransects
         self.AreaFromLOBF()
+        self.TranArea=oriSiteSize.TranArea
 
 if __name__ == "__main__":
 
@@ -198,6 +200,7 @@ if __name__ == "__main__":
     from GDuckTransectclass import GDuckTransectclass
     from MetaTransectClass import MetaTransectClass
     databasepath='H:/AnalysisPrograms2013/PyFunctions/Geoduck/SampleData/2013MalcolmIsWorking.mdb'  
+    databasepath='t:Geoduck_Bio.mdb'  
     from ADO import adoBaseClass as OpenDB
     ODB=OpenDB(databasepath)
     AlloSource=QueryFunc.AlloEqn()  

@@ -1,3 +1,7 @@
+'''
+2016-01-29 Modify to use standard form of allometric instead of alpha-30
+2015-11-23 Modify to use CopyMDB.'''
+
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'MainWindow.ui'
@@ -24,9 +28,10 @@ import sys,os
 #sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from GetSurveys import AllSurveys
 from ADO import adoBaseClass as OpenDB
-from transectclass import transectclass
+from GSUTransectClass import transectclass
 from NewMDB import NewMDB
 from InputOutputMDB import dataODB,resultODB
+from CopyMDB import CopyMDB
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -84,18 +89,18 @@ class Ui_Dialog(object):
         self.label_4.setGeometry(QtCore.QRect(320, 440, 321, 61))
         self.label_4.setWordWrap(True)
         self.label_4.setObjectName(_fromUtf8("label_4"))
-        self.mu30 = QtGui.QPlainTextEdit(Dialog)
-        self.mu30.setGeometry(QtCore.QRect(320, 230, 191, 31))
-        self.mu30.setObjectName(_fromUtf8("mu30"))
-        self.mu30Label = QtGui.QLabel(Dialog)
-        self.mu30Label.setGeometry(QtCore.QRect(520, 230, 131, 31))
-        self.mu30Label.setObjectName(_fromUtf8("mu30Label"))
-        self.sigma30Label = QtGui.QLabel(Dialog)
-        self.sigma30Label.setGeometry(QtCore.QRect(520, 270, 131, 31))
-        self.sigma30Label.setObjectName(_fromUtf8("sigma30Label"))
-        self.sigma30 = QtGui.QPlainTextEdit(Dialog)
-        self.sigma30.setGeometry(QtCore.QRect(320, 270, 191, 31))
-        self.sigma30.setObjectName(_fromUtf8("sigma30"))
+        self.intcpt = QtGui.QPlainTextEdit(Dialog)
+        self.intcpt.setGeometry(QtCore.QRect(320, 230, 191, 31))
+        self.intcpt.setObjectName(_fromUtf8("intcpt"))
+        self.intcptLabel = QtGui.QLabel(Dialog)
+        self.intcptLabel.setGeometry(QtCore.QRect(520, 230, 131, 31))
+        self.intcptLabel.setObjectName(_fromUtf8("intcptLabel"))
+        self.sdintcptLabel = QtGui.QLabel(Dialog)
+        self.sdintcptLabel.setGeometry(QtCore.QRect(520, 270, 131, 31))
+        self.sdintcptLabel.setObjectName(_fromUtf8("sdintcptLabel"))
+        self.sdintcpt = QtGui.QPlainTextEdit(Dialog)
+        self.sdintcpt.setGeometry(QtCore.QRect(320, 270, 191, 31))
+        self.sdintcpt.setObjectName(_fromUtf8("sdintcpt"))
         self.sigmabetaLabel = QtGui.QLabel(Dialog)
         self.sigmabetaLabel.setGeometry(QtCore.QRect(520, 350, 131, 31))
         self.sigmabetaLabel.setObjectName(_fromUtf8("sigmabetaLabel"))
@@ -213,9 +218,9 @@ class Ui_Dialog(object):
         self.CalculateAllometric.setText(_translate("Dialog", "Attempt to Estimate\n"
 "Allometric Relationship\n"
 "from Data?", None))
-        self.label_4.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:8pt;\">W=exp(log(W</span><span style=\" font-size:8pt; vertical-align:sub;\">30</span><span style=\" font-size:8pt;\">)+beta*log(L/30)+epsilon)</span></p><p><span style=\" font-size:8pt;\">log(W</span><span style=\" font-size:8pt; vertical-align:sub;\">30</span><span style=\" font-size:8pt;\">)~N(mu</span><span style=\" font-size:8pt; vertical-align:sub;\">30</span><span style=\" font-size:8pt;\">,sigma</span><span style=\" font-size:8pt; vertical-align:sub;\">30</span><span style=\" font-size:8pt; vertical-align:super;\">2</span><span style=\" font-size:8pt;\">)    beta~N(mu</span><span style=\" font-size:8pt; vertical-align:sub;\">beta</span><span style=\" font-size:8pt;\">,sigma</span><span style=\" font-size:8pt; vertical-align:sub;\">beta</span><span style=\" font-size:8pt; vertical-align:super;\">2</span><span style=\" font-size:8pt;\">)    epsilon~N(0,sigma</span><span style=\" font-size:8pt; vertical-align:sub;\">epsilon</span><span style=\" font-size:8pt; vertical-align:super;\">2</span><span style=\" font-size:8pt;\">)</span></p></body></html>", None))
-        self.mu30Label.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:12pt;\">mu</span><span style=\" font-size:12pt; vertical-align:sub;\">30</span></p></body></html>", None))
-        self.sigma30Label.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:12pt;\">sigma</span><span style=\" font-size:12pt; vertical-align:sub;\">30</span></p></body></html>", None))
+        self.label_4.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:8pt;\">W=exp(alpha+beta*log(L)+epsilon)</span></p><p><span style=\" font-size:8pt;\">log(alpha)~N(mu</span><span style=\" font-size:8pt; vertical-align:sub;\">alpha</span><span style=\" font-size:8pt;\">,sigma</span><span style=\" font-size:8pt; vertical-align:sub;\">alpha</span><span style=\" font-size:8pt; vertical-align:super;\">2</span><span style=\" font-size:8pt;\">)    beta~N(mu</span><span style=\" font-size:8pt; vertical-align:sub;\">beta</span><span style=\" font-size:8pt;\">,sigma</span><span style=\" font-size:8pt; vertical-align:sub;\">beta</span><span style=\" font-size:8pt; vertical-align:super;\">2</span><span style=\" font-size:8pt;\">)    epsilon~N(0,sigma</span><span style=\" font-size:8pt; vertical-align:sub;\">epsilon</span><span style=\" font-size:8pt; vertical-align:super;\">2</span><span style=\" font-size:8pt;\">)</span></p></body></html>", None))
+        self.intcptLabel.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:12pt;\">mu</span><span style=\" font-size:12pt; vertical-align:sub;\">alpha</span></p></body></html>", None))
+        self.sdintcptLabel.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:12pt;\">sigma</span><span style=\" font-size:12pt; vertical-align:sub;\">alpha</span></p></body></html>", None))
         self.sigmabetaLabel.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:12pt;\">sigma</span><span style=\" font-size:12pt; vertical-align:sub;\">beta</span></p></body></html>", None))
         self.mubetaLabel.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:12pt;\">mu</span><span style=\" font-size:12pt; vertical-align:sub;\">beta</span></p></body></html>", None))
         self.sigmaepsilonLabel.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:12pt;\">sigma</span><span style=\" font-size:12pt; vertical-align:sub;\">epsilon</span></p></body></html>", None))
@@ -248,7 +253,7 @@ class Ui_Dialog(object):
         self.AvailSurveys.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
 
     def FillTranChar(self):
-        for fieldname in ['Location','SubSampleLocation','Year','StatArea','SubArea']:
+        for fieldname in ['SurveyTitle','SubSampleLocation','Year','StatArea','SubArea']:
             item=QListWidgetItem(fieldname)
             self.TransectCharacteristics.addItem(item)
         #pdb.set_trace()
@@ -272,21 +277,23 @@ class Ui_Dialog(object):
                                              self.SelectedSurveys,\
                                              self.SelectedTranchar,\
                                              CalcAllo=self.CalcAllometric,
-                                             DefaultAllo=AlloEqn(mnlw30=self.AlloParam['mu30'],\
-                                                                 sdlnw30=self.AlloParam['sigma30'],\
+                                             DefaultAllo=AlloEqn(intcpt=self.AlloParam['intcpt'],\
+                                                                 sdintcpt=self.AlloParam['sdintcpt'],\
                                                                  mnbeta=self.AlloParam['mubeta'],\
                                                                  sdbeta=self.AlloParam['sigmabeta'],\
                                                                  sigmawithin=self.AlloParam['sigmaepsilon']))
         self.PrepOUTmdb()
-       
+        dictSelectedSurveys=self.SelectedSurveystoDict()
+        CopyMDB(self.ODB,self.OUTmdb,dictSelectedSurveys)
+        
         CB=[99,95,90,75,50]
         nboot=int(self.NumberBootstrap.document().toPlainText())
 
         for i in range(self.TranClassChar.nclass):
-            #pdb.set_trace()
+                
             FTC=self.TranClassChar.FormatTranClass(i)
             if self.TranClassChar.TranClass!=[[]]:
-                print('\nLocation: ',FTC['Location'] )
+                print('\nSurveyTitle: ',FTC['SurveyTitle'] )
                 print('SubSampleLocation: ',FTC['SubSampleLocation'] )
                 if FTC['Year'    ]!=MinInt: print('Year:     ',FTC['Year'    ])
                 if FTC['StatArea']!=MinInt: print('StatArea: ',FTC['StatArea'] )
@@ -302,12 +309,15 @@ class Ui_Dialog(object):
 
             
             #Transect Classes
-            self.OUTmdb.ADDTo_TranChar(FTC['Location'],FTC['SubSampleLocation'],FTC['Year'],FTC['StatArea'],FTC['SubArea'],FTC['InBed'],FTC['NumTran'],\
+            self.OUTmdb.ADDTo_TranChar(FTC['SurveyTitle'],FTC['SubSampleLocation'],FTC['Year'],FTC['StatArea'],FTC['SubArea'],FTC['InBed'],FTC['NumTran'],\
                                   tc.GetSurveyedArea(),\
-                                  tc.AlloSource.mnlw30,tc.AlloSource.sdlnw30,\
+                                  tc.GetNumSurveyedQuadInDepthRange(),
+                                  tc.AlloSource.intcpt,tc.AlloSource.sdintcpt,\
                                   tc.AlloSource.mnbeta,tc.AlloSource.sdbeta,
                                   tc.AlloSource.sigmawithin)
-            tck=self.OUTmdb.GetTranCharKey(FTC['Location'],FTC['SubSampleLocation'],FTC['Year'],FTC['StatArea'],FTC['SubArea'],FTC['InBed'])
+            tck=self.OUTmdb.GetTranCharKey(FTC['SurveyTitle'],FTC['SubSampleLocation'],FTC['Year'],FTC['StatArea'],FTC['SubArea'],FTC['InBed'])            
+            tc.WriteTransectResults(self.OUTmdb,tck)
+
 
             #The confidence bounds
             for cbResult in CurCB:
@@ -342,14 +352,14 @@ class Ui_Dialog(object):
         #pdb.set_trace()
         self.AlloParam={}
         try:
-            self.AlloParam['mu30']=float(self.mu30.document().toPlainText()  )
+            self.AlloParam['intcpt']=float(self.intcpt.document().toPlainText()  )
         except:
-            print ('MainWindow 267,type(self.mu30.document().toPlainText() )',type(self.mu30.document().toPlainText() ),self.mu30.document().toPlainText() )
-            self.AlloParam['mu30']=None 
+            print ('MainWindow 267,type(self.intcpt.document().toPlainText() )',type(self.intcpt.document().toPlainText() ),self.intcpt.document().toPlainText() )
+            self.AlloParam['intcpt']=None 
         try:
-            self.AlloParam['sigma30']=float(self.sigma30.document().toPlainText())
+            self.AlloParam['sdintcpt']=float(self.sdintcpt.document().toPlainText())
         except:
-            self.AlloParam['sigma30']=None 
+            self.AlloParam['sdintcpt']=None 
         try:
             self.AlloParam['mubeta']=float(self.mubeta.document().toPlainText() )
         except:
@@ -403,12 +413,12 @@ class Ui_Dialog(object):
         sys.exit(app.exec_())
 
     def DefaultSettings(self):
-        self.mu30.insertPlainText('2.41753')
-        self.sigma30.insertPlainText('0.129231')
-        self.mubeta.insertPlainText('2.754085')
-        self.sigmabeta.insertPlainText('0.00699')
-        self.sigmaepsilon.insertPlainText('0.122298')
-        self.NumberBootstrap.insertPlainText('1000')
+        self.intcpt.insertPlainText('-6.8664802585167077')
+        self.sdintcpt.insertPlainText('0.034723646241811214')
+        self.mubeta.insertPlainText('2.7276732805478963')
+        self.sigmabeta.insertPlainText('0.0088232364135380891')
+        self.sigmaepsilon.insertPlainText('0.15967472910118682')
+        self.NumberBootstrap.insertPlainText('10000')
         self.RandomSeed.insertPlainText('756')
         self.MinDepth.insertPlainText('-1000')
         self.MaxDepth.insertPlainText('1000')
@@ -433,6 +443,14 @@ class Ui_Dialog(object):
 
         for sy in self.SelectedSurveys:
             self.OUTmdb.ADDTo_SurveyUsed(sy[0],sy[1])
+            
+           
+    def SelectedSurveystoDict(self):
+        '''Convert self.SelectedSurveys as a list of dictionaries'''
+        if isinstance(self.SelectedSurveys[0],dict):
+            return(self.SelectedSurveys)
+        result=[{'SurveyTitle':t[0], 'Year':t[1]}  for t in self.SelectedSurveys]
+        return(result)
 
        
 

@@ -1,3 +1,8 @@
+'''2015-11-25
+In Combined-sites, recognize the special case where there is a single-site.
+Combined-results will exactly replicate results for single-site.  Less confusion that way.
+'''
+
 # change made 20140717
 #    Transects used for run number 2 (LOBF-based site-area)
 #    Previously, only tranects with a BedNum-value from the Headers table were
@@ -11,7 +16,6 @@
 from numpy.random import seed,uniform
 from numpy import inf,iinfo,int16,sqrt,array
 MinInt=iinfo(int16).min
-import pdb
 
 
 from PyQt4.QtGui import QMainWindow, QDialog,QListWidgetItem
@@ -23,7 +27,7 @@ from MetaTransectClass import MetaTransectClass
 from GDuckTransectclass import GDuckTransectclass
 from ParamLevelCombo import CalcOverallStats
 from mquantiles import mquantiles
-from ArithSamples import Add,Divide
+from ArithSamples import Add,Divide,DivideByAverage
 
 import sys,os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
@@ -31,6 +35,7 @@ from GetSurveys import AllSurveys
 from ADO import adoBaseClass as OpenDB
 from GeoduckDialog import GeoduckDialog
 import geoduckQueryFunc as QueryFunc
+from CopyMDB import CopyMDB
 
 class GeoduckMain(QMainWindow, GeoduckDialog):
 
@@ -43,13 +48,11 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
         
         self.OUTmdb=self.resultODB.ODB
         self.ODB=self.inMDB.ODB
-        #pdb.set_trace()
         self.FillSurveys()
         self.DefaultSettings()
         self.setFocus()
 
     def MakeConnect(self):
-        #pdb.set_trace()
         self.DoCalcs.clicked.connect(self.Calculations)
         self.QuitBttn.clicked.connect(self.QuitCalcs)
         self.AllSurveys.stateChanged.connect(self.DoAllSurveys)
@@ -57,7 +60,6 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
 
         
     def FillSurveys(self):
-        #pdb.set_trace()
         self.AS=AllSurveys(self.ODB)
         FullName=self.AS.GetCombo()
         for fn in FullName:
@@ -67,7 +69,7 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
 
 
     def DefaultSettings(self):
-        self.NumberBootstrap.insertPlainText('1000')
+        self.NumberBootstrap.insertPlainText('10000')
         self.RandomSeed.insertPlainText('756')
         self.MinDepth.insertPlainText('3')
         self.MaxDepth.insertPlainText('1000')    
@@ -96,7 +98,6 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
         SiteEst=[]
         SampSite=[]
         TranClass=[]
-        seed(self.seed)
 
         #Beginning of run 2 ###
         #Results based on LOBF as a basis for esitmating site-area
@@ -107,13 +108,14 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
             print("\nSurvey: ",self.TranClassChar.GetChar(i,'SurveyTitle'))
             print("Year:   ",self.TranClassChar.GetChar(i,'Year'))
             print("Site:",self.TranClassChar.GetChar(i,'SurveySite'))
-            
 
-
+            #Random seeds will be manually gernerated for each sample of transects
+            curseed=self.seed+i*self.nboot
+ 
             print ('Reading Data')
             CTC=GDuckTransectclass(self.ODB,i,self.TranClassChar,AlloSource,QueryFunc,\
                                    MinDepth=self.LeastDepth,MaxDepth=self.MostDepth,\
-                                   OnlyOnBed=False)
+                                   OnlyOnBed=False,curseed=curseed)
             TranClass+=[CTC] 
             SiteEst+=[{'ntransect':CTC.ntransect,'MeanWeight':CTC.MeanWeight,'SiteSize':CTC.SiteSize}]
 
@@ -154,6 +156,10 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
             SiteSamp2+=[CTC. WriteSiteCB(self.OUTmdb,nboot=self.nboot,\
                                          CB=CB,RunNumber=2) ]           
         print ('\nCombined')
+        
+        #Reduce datasets to sites that should be combined into overall results
+        SiteEst,SiteSamp2= SelectGood(self.TranClassChar.AnalyzeSite, SiteEst),SelectGood(self.TranClassChar.AnalyzeSite, SiteSamp2)
+        
         self.WriteOverall(SiteEst,SiteSamp2,CB)
         SurveyArea=sum(list(map(lambda x:x['Area'], SiteEst)))
         ntransect=sum(list(map(lambda x:x['ntransect'], SiteEst)))
@@ -230,6 +236,10 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
             SiteSamp+=[CTC. WriteSiteCB(self.OUTmdb,nboot=self.nboot,CB=CB,RunNumber=4,Area=None)]
             
         print ('\nCombined')
+        
+        #Reduce datasets to sites that should be combined into overall results
+        SiteEst,SiteSamp2= SelectGood(self.TranClassChar.AnalyzeSite, SiteEst),SelectGood(self.TranClassChar.AnalyzeSite, SiteSamp2)
+        
         self.WriteOverall(SiteEst,SiteSamp,CB)
         SurveyArea=sum(list(map(lambda x:x['Area'], SiteEst)))
         ntransect=sum(list(map(lambda x:x['ntransect'], SiteEst)))
@@ -237,6 +247,8 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
              ntransect,self.nboot,self.seed, self.LeastDepth,self.MostDepth )
         #End of run 4 ###############
 
+        dictSelectedSurveys=self.SelectedSurveystoDict()
+        CopyMDB(self.ODB,self.OUTmdb,dictSelectedSurveys)
 
         print('\nResults are in ',self.OUTmdb.OUTmdbName)
         return
@@ -278,7 +290,6 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
         self.SelectedSurveys=[]
         year=self.AS.GetYear()
         survey=self.AS.GetSurvey()
-        #pdb.set_trace()
         for index in range(self.AvailSurveys.count()):
             if self.AvailSurveys.item(index).isSelected():
                  self.SelectedSurveys+=[[survey[index],year[index]]]
@@ -307,6 +318,15 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
         RunNumber=-1
         for ss in self.SelectedSurveys:
             self.OUTmdb.ADDTo_SurveyUsed(ss[0],str(ss[1]))
+            
+           
+    def SelectedSurveystoDict(self):
+        '''Convert self.SelectedSurveys as a list of dictionaries'''
+        if isinstance(self.SelectedSurveys[0],dict):
+            return(self.SelectedSurveys)
+        result=[{'SurveyTitle':t[0], 'Year':t[1]}  for t in self.SelectedSurveys]
+        return(result)
+
 def ValorMax(x):
     try:
         return(min(x))
@@ -328,18 +348,29 @@ def CombineSites(SiteSamp,CB):
         SumArea=array(SiteSamp[0]['Area'])
         SumPop =array(SiteSamp[0]['SampPop'])
         SumBioM=array(SiteSamp[0]['SampBiomass'])
-        for x in SiteSamp[1:]:
-          try:
-            SumArea=Add(SumArea,x['Area'])  
-            SumPop =Add(SumPop,x['SampPop'])  
-            SumBioM=Add(SumBioM,x['SampBiomass'])
-          except:
-            pdb.set_trace()
-            SumArea=Add(SumArea,x['Area'])  
-            SumPop =Add(SumPop,x['SampPop'])  
-            SumBioM=Add(SumBioM,x['SampBiomass'])
-        PopDens=Divide(SumPop   ,SumArea)
-        BioDens=Divide(SumBioM,SumArea)
+        
+        #For a single site, just reuse the densities        
+        if len(SiteSamp)==1:
+            PopDens=array(SiteSamp[0]['SampAvgPopDens'])
+            BioDens=array(SiteSamp[0]['SampBioDensity'])
+        
+        #For multiple sites, add up biomass and population amd divide by mean areaa        
+        else:
+            for x in SiteSamp[1:]:
+                SumArea=Add(SumArea,x['Area'])  
+                SumPop =Add(SumPop,x['SampPop'])  
+                SumBioM=Add(SumBioM,x['SampBiomass'])
+    
+            '''Divide by the average because uncertainty in the area has already contributed
+            to variability in total-population and total-biomass.  This is the way population and 
+            biomass denisties were estimated in previous versions of GAP.
+            
+            With lots of effort, something better could be created.  Lots more cpu and memory 
+            would be required.  I will stick with this for now.'''
+            
+            
+            PopDens=DivideByAverage(SumPop   ,SumArea)
+            BioDens=DivideByAverage(SumBioM,SumArea)
 
     if isinstance( CB,(float,int)):
         p=[.5-CB/200.,.5+CB/200]
@@ -359,8 +390,7 @@ def CombineSites(SiteSamp,CB):
             result['PopDens' ]+=[[CB[i],pPopDens[i] ,pPopDens[-i-1]  ]]
             result['BioDens' ]+=[[CB[i],pBioDens[i] ,pBioDens[-i-1]  ]]
     except:
-        print('\nGeoduckMain 242')
-        pdb.set_trace()
+        print('\nGeoduckMain 372')
         for i in range(int(len(p)/2)):
             result['SitePop' ]+=[[CB[i],pSitePop[i] ,pSitePop[-i-1]  ]]
             result['SiteBioM']+=[[CB[i],pSiteBioM[i],pSiteBioM[-i-1] ]]
@@ -368,7 +398,10 @@ def CombineSites(SiteSamp,CB):
             result['BioDens' ]+=[[CB[i],pBioDens[i] ,pBioDens[-i-1]  ]]
     return(result)
 
-  
+def SelectGood(criteria, orilist):
+    n=len(criteria)
+    result=[orilist[i] for i in range(n) if criteria[i]   ]
+    return(result)
 
 if __name__ == "__main__":
     import sys

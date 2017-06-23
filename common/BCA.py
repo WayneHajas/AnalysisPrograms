@@ -24,11 +24,16 @@ def BCA(determEst,probSample,JackSample,p=[.025,.975]):
        for k in determEst.keys():
            #pdb.set_trace()
            dE=determEst[k]
+           
+           #Ignore iterations where there are no quadrats in depth range
+           pS2=list(filter(lambda t:t!=None,probSample))
            try:
-               pS=list(map(lambda x:x[k],probSample))
+               pS=list(map(lambda x:x[k],pS2))
            except:
-                print ('BCA 24,k,probSample\n',k,'\n',probSample[k])
-                pS=probSample[k]
+                print ('BCA 24,k,probSample\n',k,'\n')
+                for i in range(len(probSample)):
+                    print(i,probSample[i][k])
+                pS=list(map(lambda x:x[k],probSample))
            
            if (JackSample==None) or (JackSample==[None]):
               js=None
@@ -146,7 +151,6 @@ def BCA_CB(determEst,probSample,JackSample,CB):
    JackSample is a list of jacknife values
    0<CB<1 the confidence level - or a list of confidence levels
    '''
-   print('BCA 149 CB\n',CB)
 
 
    if isinstance(determEst,dict):
@@ -162,7 +166,7 @@ def BCA_CB(determEst,probSample,JackSample,CB):
            try:
                result[k]=BCA_CB(dE,pS,js,CB)
            except:
-                print ('\nBCA 149 , k',k)
+                print ('\nBCA 169 , k',k)
                 print ('dE',dE)
                 print ('pS',pS)
                 print ('js',js)

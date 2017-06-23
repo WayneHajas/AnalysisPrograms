@@ -1,6 +1,10 @@
+'''20151224
+Modify WriteTransectResults to give population density as linear-value
+'''
+
 #Class to represent a 'class' of transects that will be used to represent an entity.  Typically, all the transects in a site.
 
-from numpy import iinfo,int16,average,array
+from numpy import iinfo,int16,average,array,sqrt
 MinInt=iinfo(int16).min
 from numpy.random import choice
 
@@ -12,7 +16,7 @@ from SumAbundance import SumAbundance,CalcDensity,CalcAvgWeight
 from wchNorm import *
 from InterpProd import WCHinterp
 from BCA import BCA_CB
-import pdb
+from ArithSamples import Multiply
 
 
 class CukeTransectclass(transectclass):
@@ -38,7 +42,7 @@ class CukeTransectclass(transectclass):
 
   
     def GetAbundance(self,AverageWeight=None,UseDeterm=False):
-        if (AverageWeight==None):
+        if (AverageWeight is None):
             if UseDeterm:
                 self.AE=self.AlloSource.AvgWgtDetermAE()
             else:
@@ -70,7 +74,7 @@ class CukeTransectclass(transectclass):
             except:
                 Bmass=MinInt
             try:
-                PopDens=CurTransect.GetAbundance()['USLinf']['Pop']/CurTransect.GetTranLength()/CurTransect.GetTranWidth()
+                PopDens=CurTransect.GetAbundance()['USLinf']['Pop']/CurTransect.GetTranWidth()
             except:
                 PopDens=MinInt
             OUTmdb.ADDTo_Transect(TranCharKey,\
@@ -117,7 +121,6 @@ class CukeTransectclass(transectclass):
         if nboot!=None:
             result=list(map(lambda dummy:self.SampAvgDensity(nboot=None),range(nboot)))
             return(result)
-        #pdb.set_trace()
         SampTran=SampleTransect(self,replace=True)
         result=SampTran.GetAvgAbundance()['linear']['USLinf']['Pop']
         return(result)
@@ -135,7 +138,6 @@ class CukeTransectclass(transectclass):
 
 
     def GetJackAvgDensity(self):
-        #pdb.set_trace()
         result=list(map(lambda t:t['linear']['USLinf']['Pop'], self.GetJackAbund()))
         return(result)
 
@@ -145,10 +147,10 @@ class CukeTransectclass(transectclass):
         else:cb=list(map(lambda x:x/100.,CB))
         
         useAvgDensity=AvgDensity
-        if useAvgDensity==None:useAvgDensity=sorted(self.SampAvgDensity(nboot=nboot))
+        if useAvgDensity is None:useAvgDensity=sorted(self.SampAvgDensity(nboot=nboot))
 
         useJackAvgDensity=JackAvgDensity
-        if useJackAvgDensity==None:useJackAvgDensity=sorted(self.GetJackAvgDensity())
+        if useJackAvgDensity is None:useJackAvgDensity=sorted(self.GetJackAvgDensity())
 
         determEst=self.DetermMeanAbund()['linear']['USLinf']['Pop']
         result=BCA_CB(determEst,useAvgDensity,useJackAvgDensity,cb)
@@ -156,30 +158,31 @@ class CukeTransectclass(transectclass):
         return(result)
 
     def SampBiomassDensity(self,nboot=1000,AvgDensity=None):
+        #There are memory problems of nboot samples of weight are sampled.
+        #Therefore only use sqrt of nboot
+        sqboot=max([int(sqrt(nboot)) ,100])       
+        
         MeanWeight=self.TranClassChar.SI.result[self.ClassIndex]['MeanWeight']
         StErrWeight=self.TranClassChar.SI.result[self.ClassIndex]['StErrWeight']
-        pval=list(map(lambda i:(i+.5)/float(nboot),range(nboot)))
+        pval=list(map(lambda i:(i+.5)/float(sqboot),range(sqboot)))
 
         #Weight values
         w=array(list(map(lambda i: InvNorm( i),pval)))
         w*=StErrWeight
         w+=MeanWeight
 
-        #pdb.set_trace()
         #Populations
         if AvgDensity!=None:
             p=AvgDensity
         else:
             p=array(self.SampAvgDensity(nboot=nboot))
 
-        bd=w.reshape(len(w),1)*p
-        bd=bd.reshape(1,len(w)*len(p))[0]    
-        result=mquantiles(bd,pval)
+        result=Multiply(w,p)        
         return(result)
 
     def GetJackBiomassDensity(self,JackAvgDensity=None):
         useJackAvgDensity=JackAvgDensity
-        if useJackAvgDensity==None:useJackAvgDensity=sorted(self.GetJackAvgDensity())
+        if useJackAvgDensity is None:useJackAvgDensity=sorted(self.GetJackAvgDensity())
         MeanWeight=self.TranClassChar.SI.result[self.ClassIndex]['MeanWeight']
         result=list(map(lambda x:x*MeanWeight, useJackAvgDensity))
         return(result)
@@ -190,10 +193,10 @@ class CukeTransectclass(transectclass):
         else:cb=list(map(lambda x:x/100.,CB))
 
         useBiomassDensity=BiomassDensity
-        if useBiomassDensity==None:useBiomassDensity=sorted(self.SampBiomassDensity(nboot=nboot,AvgDensity=AvgDensity))
+        if useBiomassDensity is None:useBiomassDensity=sorted(self.SampBiomassDensity(nboot=nboot,AvgDensity=AvgDensity))
 
         useJackBiomassDensity=JackBiomassDensity
-        if useJackBiomassDensity==None:useJackBiomassDensity=self.GetJackBiomassDensity(JackAvgDensity=JackAvgDensity)
+        if useJackBiomassDensity is None:useJackBiomassDensity=self.GetJackBiomassDensity(JackAvgDensity=JackAvgDensity)
 
         MeanWeight=self.TranClassChar.SI.result[self.ClassIndex]['MeanWeight']
         determEst=MeanWeight*self.DetermMeanAbund()['linear']['USLinf']['Pop']
@@ -203,9 +206,12 @@ class CukeTransectclass(transectclass):
          
 
     def SampPop(self,nboot=1000,AvgDensity=None):
+        #There are memory problems of nboot samples of weight are sampled.
+        #Therefore only use sqrt of nboot
+        sqboot=max([int(sqrt(nboot)) ,100])  
         CoastLengthM=self.TranClassChar.SI.result[self.ClassIndex]['CoastLengthM']
         StErrCLM=self.TranClassChar.SI.result[self.ClassIndex]['StErrCLM']
-        pval=list(map(lambda i:(i+.5)/float(nboot),range(nboot)))
+        pval=list(map(lambda i:(i+.5)/float(sqboot),range(sqboot)))
 
         #Coast-Length values
         w=array(list(map(lambda i: InvNorm( i),pval)))
@@ -220,12 +226,13 @@ class CukeTransectclass(transectclass):
 
         bd=w.reshape(len(w),1)*p
         bd=bd.reshape(1,len(w)*len(p))[0]
-        result=mquantiles(bd,pval)
+        pval2=list(map(lambda i:(i+.5)/float(nboot),range(nboot)))
+        result=mquantiles(bd,pval2)
         return(result)
     
     def GetJackPop(self,JackAvgDensity=None):
         useJackAvgDensity=JackAvgDensity
-        if useJackAvgDensity==None:useJackAvgDensity=sorted(self.GetJackAvgDensity())
+        if useJackAvgDensity is None:useJackAvgDensity=sorted(self.GetJackAvgDensity())
         CoastLengthM=self.TranClassChar.SI.result[self.ClassIndex]['CoastLengthM']
         result=list(map(lambda x:x*CoastLengthM, useJackAvgDensity))
         return(result)
@@ -235,10 +242,10 @@ class CukeTransectclass(transectclass):
         else:cb=list(map(lambda x:x/100.,CB))
 
         usePopDensity=PopDensity
-        if usePopDensity==None:usePopDensity=sorted(self.SampPop(nboot=nboot,AvgDensity=AvgDensity))
+        if usePopDensity is None:usePopDensity=sorted(self.SampPop(nboot=nboot,AvgDensity=AvgDensity))
 
         useJackPop=JackPop
-        if useJackPop==None:useJackPop=self.GetJackPop(JackAvgDensity=JackAvgDensity)
+        if useJackPop is None:useJackPop=self.GetJackPop(JackAvgDensity=JackAvgDensity)
         
         CoastLengthM=self.TranClassChar.SI.result[self.ClassIndex]['CoastLengthM']
         determEst=CoastLengthM*self.DetermMeanAbund()['linear']['USLinf']['Pop']
@@ -246,9 +253,12 @@ class CukeTransectclass(transectclass):
         return(result)
       
     def SampBiomass(self,nboot=1000,BiomassDensity=None,AvgDensity=None):
+        #There are memory problems of nboot samples of weight are sampled.
+        #Therefore only use sqrt of nboot
+        sqboot=max([int(sqrt(nboot)) ,100])  
         CoastLengthM=self.TranClassChar.SI.result[self.ClassIndex]['CoastLengthM']
         StErrCLM=self.TranClassChar.SI.result[self.ClassIndex]['StErrCLM']
-        pval=list(map(lambda i:(i+.5)/float(nboot),range(nboot)))
+        pval=list(map(lambda i:(i+.5)/float(sqboot),range(sqboot)))
 
         #Coast-length values
         cl=array(list(map(lambda i: InvNorm( i),pval)))
@@ -262,15 +272,17 @@ class CukeTransectclass(transectclass):
             bmd=array(self.SampBiomassDensity(nboot=nboot,AvgDensity=AvgDensity))
 
         bd=cl.reshape(len(cl),1)*bmd
-        bd=bd.reshape(1,nboot*nboot)[0]
+        bd=bd.reshape(1,len(cl)*len(bmd))[0]
         bd.sort()
-        oldx=list(map(lambda i: (i+.5)/nboot/nboot,range(nboot*nboot)))
-        result=WCHinterp(oldx,bd,pval)
+        nbd=len(bd)
+        oldx=list(map(lambda i: (i+.5)/nbd,range(nbd)))
+        newx=list(map(lambda i:(i+.5)/float(nboot),range(nboot)))
+        result=WCHinterp(oldx,bd,newx)
         return(result)
 
     def GetJackBiomass(self,JackAvgDensity=None):
         useJackAvgDensity=JackAvgDensity
-        if useJackAvgDensity==None:useJackAvgDensity=sorted(self.GetJackAvgDensity())
+        if useJackAvgDensity is None:useJackAvgDensity=sorted(self.GetJackAvgDensity())
         MeanWeight=self.TranClassChar.SI.result[self.ClassIndex]['MeanWeight']
         CoastLengthM=self.TranClassChar.SI.result[self.ClassIndex]['CoastLengthM']
         result=list(map(lambda x:x*MeanWeight*CoastLengthM, useJackAvgDensity))
@@ -284,10 +296,10 @@ class CukeTransectclass(transectclass):
         else:cb=list(map(lambda x:x/100.,CB))
 
         useBiomass=Biomass
-        if useBiomass==None:useBiomass=sorted(self.SampBiomass(nboot=nboot,BiomassDensity=BiomassDensity,AvgDensity=AvgDensity))
+        if useBiomass is None:useBiomass=sorted(self.SampBiomass(nboot=nboot,BiomassDensity=BiomassDensity,AvgDensity=AvgDensity))
 
         useJackBiomass=JackBiomass
-        if useJackBiomass==None:useJackBiomass=self.GetJackBiomass(JackAvgDensity=JackAvgDensity)
+        if useJackBiomass is None:useJackBiomass=self.GetJackBiomass(JackAvgDensity=JackAvgDensity)
 
         MeanWeight=self.TranClassChar.SI.result[self.ClassIndex]['MeanWeight']
         CoastLengthM=self.TranClassChar.SI.result[self.ClassIndex]['CoastLengthM']
@@ -332,9 +344,8 @@ class SampleTransect(CukeTransectclass):
         tc is an instance of transectclass
         SampleSize is the number of transects in the resample - will default to the same number as in tc
         replace indicates if sampling is done with replacement'''
-        #pdb.set_trace()
         self.ntransect= ntransect
-        if self.ntransect==None:self.ntransect=len(tc.IndexTranUse)
+        if self.ntransect is None:self.ntransect=len(tc.IndexTranUse)
 
         #For some reason, numpy.choice wasn't very random when it sampled transects.
         #I am going to sample indeces and then bring in the transects accordingly.

@@ -1,15 +1,21 @@
+'''2015-11-03
+If a random seed is specified, then it is used as the basis for generating (not randomly)
+a seed for every iteration of transect sampling.'''  
+
+
 #Class to represent a 'class' of transects that will be used to represent an entity.  Typically, all the transects in a site.
 
 from numpy import iinfo,int16,average,array,average
 MinInt=iinfo(int16).min
-from numpy.random import choice,shuffle
-from numpy.random import uniform
+from numpy.random import shuffle
+from wchchoice import choice
+from numpy.random import seed
 from copy import deepcopy
 #from scipy.stats import randint
 
 import os,sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
-from mquantiles import mquantiles
+#sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
+from wchmquantile import mquantiles
 from GDtransect import GDtransect
 from transectclass import transectclass
 from SumAbundance import SumAbundance,CalcDensity,CalcAvgWeight
@@ -20,13 +26,12 @@ from ADOSFdate import GetShowPlotNum,dumbSFplot,ADOmultiSFplot
 from SiteSize import SiteSize,CopySiteSize
 from ADOWeightVal import ADOWeightVal
 from ArithSamples import Multiply
-import pdb
 
 
 
 class GDuckTransectclass(transectclass):
     def __init__(self,ODB,ClassIndex,TranClassChar,AlloSource,QueryFunc,\
-                 SizeBound=None,MinDepth=-999,MaxDepth=999,ShowFactor=None,OnlyOnBed=False):
+                 SizeBound=None,MinDepth=-999,MaxDepth=999,ShowFactor=None,OnlyOnBed=False,curseed=None):
         '''GDuckTransectclass(ODB,ClassIndex,TranClassChar,AlloSource,QueryFunc,SizeBound=None,MinDepth=-999,MaxDepth=999,ShowFactor=None)
         ODB (open database) is an instance of the ADO class
         ClassIndex is an index used within TranClassChar to specify the class of transects
@@ -37,7 +42,10 @@ class GDuckTransectclass(transectclass):
         self.ODB=ODB
         self.TranClassChar=TranClassChar
         self.ClassIndex=ClassIndex
+        self.curseed=curseed
+        seed(self.curseed)
         self.key=TranClassChar.TranClass[self.ClassIndex]['AllKey']
+        self.key.sort()
         
         #super().__init__(ODB,key,AlloSource,QueryFunc,MinDepth=MinDepth,MaxDepth=MaxDepth)
         self.MinDepth,self.MaxDepth=MinDepth,MaxDepth
@@ -170,7 +178,6 @@ class GDuckTransectclass(transectclass):
             try:
               tranSF=self.SFData.EstSF(date=CurTransect.SurveyDate,CalcNumDuck=True)
             except:
-              pdb.set_trace()
               tranSF=self.SFData.EstSF(date=CurTransect.SurveyDate,CalcNumDuck=True)
             tranArea=CurTransect.GetQuadArea()
             MeanWeight=self.MeanWeight.EstMeanWeight
@@ -213,15 +220,20 @@ class GDuckTransectclass(transectclass):
 
 
                              
-    def GetSampAvgDensity(self,nboot=1000):
+    def GetSampAvgDensity(self,nboot=1000,iterseed=None):
+        '''iterseed is ignored for multiple samples.'''
 
         if self.ntransect<=0:return(nboot*[MinInt])
         if nboot!=None:
-            result1     =list(map(lambda dummy:self.GetSampAvgDensity(nboot=None),range(nboot)))
+            if self.curseed!=None:
+                #set a new seed for every re-sample
+                result1=[self.GetSampAvgDensity(nboot=None,iterseed=self.curseed+i)   for i in range(nboot)]
+            else:
+                #rely on random sampling as initiated in a previous call to numpy.random.seed                
+                result1=[self.GetSampAvgDensity(nboot=None,iterseed=None)   for i in range(nboot)]
             return(result1)
  
-        SampTran=SampleTransect(self,replace=True)
-        dummy=SampTran.ntransect
+        SampTran=SampleTransect(self,replace=True,curseed=iterseed)
         try:
             result=SampTran.GetAvgDensity(UseDeterm=False)
         except:
@@ -434,21 +446,20 @@ class GDuckTransectclass(transectclass):
 
         #Sample of average-weight values
         SW=SampleWeight
-        if SW==None:SW=self.MeanWeight.RandSource.EquiProbVal(int(sqrt(nboot)))
+        if SW==None:SW=self.MeanWeight.RandSource.EquiProbVal(nboot)
 
         #Site-Area values for sampling
         A=Area
         if (A==None):
             if RunNumber==4: #Digitized area
                 try:
-                  A=self.SiteSize.DigitizedArea.rvs(n=nboot)
+                  A=self.SiteSize.DigitizedArea.EquiProbVal(nboot,LowBound=self.SiteSize.TranArea)
                 except:
                   print('\nGDuckTransectclass 398 ')
                   print('self.SiteSize.GetDigitizedArea()  ',self.SiteSize.GetDigitizedArea()   )
-                  pdb.set_trace()
                   A=self.SiteSize.GetDigitizedArea().mu
             elif RunNumber==2:#Area based on mean-transect-length and line-of-best-fit
-                A=self.SiteSize.RandAreaFromLOBF(n=nboot)
+                A=self.SiteSize.LOBFarea.EquiProbVal(nboot,LowBound=self.SiteSize.TranArea)
 
             else:
                 print('GDuckTransectclass 249')
@@ -484,7 +495,7 @@ class GDuckTransectclass(transectclass):
                                       CBBioDens[i][0],CBBioDens[i][1],\
                                       CBBiomass[i][0]/1000,CBBiomass[i][1]/1000)
         result={'Area':A,'SampPop':SampPop,'SampBiomass':SampBiomass,'SampleWeight':SW,\
-                'SampAvgPopDens':SampAvgPopDens2}
+                'SampAvgPopDens':SampAvgPopDens2,'SampBioDensity':SampBioDensity}
             
         return(result)
 
@@ -501,7 +512,7 @@ class GDuckTransectclass(transectclass):
                 
 
 class SampleTransect(GDuckTransectclass):
-    def __init__(self,tc,ntransect=None,replace=True):
+    def __init__(self,tc,ntransect=None,replace=True,curseed=None):
         '''SampleTransect(tc,SampleSize=None,replace=True)
         tc is an instance of transectclass
         SampleSize is the number of transects in the resample - will default to the same number as in tc
@@ -509,16 +520,13 @@ class SampleTransect(GDuckTransectclass):
         
         self.SFData=tc.SFData
         self.SFData.Randomize(deterministic=False)
-        self.ntransect= ntransect
-        if self.ntransect==None:self.ntransect=tc.ntransect
-
-        if self.ntransect==0:
-            self.transects=[]
-        else:
-            #For some reason, numpy.choice wasn't very random when it sampled transects.
-            #I am going to sample indeces and then bring in the transects accordingly.
-            tindex=choice(tc.ntransect,self.ntransect,replace=replace)
-            self.transects=list(map(lambda t: tc.transects[t],tindex))
+        
+        self.ntransect= len(tc.transects)
+        #For some reason, numpy.choice wasn't very random when it sampled transects.
+        #I am going to sample indeces and then bring in the transects accordingly.
+        index=choice(self.ntransect,self.ntransect,replace=True,curseed=curseed)
+        self.transects=[tc.transects[i] for i in index ]        
+        
 
         self.AlloSource=tc.AlloSource
         self.AE=self.AlloSource.AvgWgtRndAE()
@@ -551,18 +559,19 @@ if __name__ == "__main__":
     from numpy import inf
     import geoduckQueryFunc as QueryFunc
     from MetaTransectClass import MetaTransectClass
-    databasepath='h:\AnalysisPrograms2013\PyFunctions\Geoduck\SampleAIP\Geoduck_Bio2.mdb'
+    databasepath='t:\Geoduck_Bio.mdb'
     from ADO import adoBaseClass as OpenDB
     ODB=OpenDB(databasepath)
     AlloSource=QueryFunc.AlloEqn()  
-    key=list(range(10819,10890))
+    key=list(range(14341,14346))
     ClassIndex=4
     
     TranClassChar=MetaTransectClass(ODB,\
-                                             [["E Texada and Grief Pt.",2012]])
+                                             [["Flamingo and Louscoone Inlets",2013]])
     #test=GDuckTransectclass(ODB,key,IndexKeyUse,TranClassChar,AlloSource,QueryFunc,SizeBound=None,MinDepth=-999,MaxDepth=999)
     test=GDuckTransectclass(ODB,ClassIndex,TranClassChar,AlloSource,QueryFunc,SizeBound=None,MinDepth=-999,MaxDepth=999,ShowFactor=None)
+    A=test.SiteSize.DigitizedArea.EquiProbVal(1000,LowBound=test.SiteSize.TranArea)
     
-    pdb.set_trace()
+    print(mquantiles(A))
 
     print ('\ndone GDuckTransect class')

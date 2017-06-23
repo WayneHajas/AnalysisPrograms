@@ -1,16 +1,11 @@
-# -*- coding: utf-8 -*-
-
-# Form implementation generated from reading ui file 'SCmain.ui'
-#
-# Created: Mon Jul 22 09:00:28 2013
-#      by: PyQt4 UI code generator 4.10.1
-#
-# WARNING! All changes made in this file will be lost!
+'''
+2016-01-12
+Modified the progress-messages that appear on the console.  Site number, if defined, will appear.
+'''
 
 from numpy.random import seed
 from numpy import inf,iinfo,int16,sqrt
 MinInt=iinfo(int16).min
-import pdb
 
 
 from PyQt4.QtGui import QMainWindow, QDialog,QListWidgetItem
@@ -21,6 +16,9 @@ from PyQt4 import QtCore, QtGui
 from MetaTransectClass import MetaTransectClass
 from CukeTransectclass import CukeTransectclass
 from ParamLevelCombo import CalcOverallStats
+from CopyMDB import CopyMDB
+from CompositeAsTransectclass import CompositeAsTransectclass
+from BCA import Naive_CB
 
 import sys,os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
@@ -39,7 +37,6 @@ class SCmain(QMainWindow, Ui_MainWindow):
         
         self.OUTmdb=self.resultODB.ODB
         self.ODB=self.inMDB.ODB
-        #pdb.set_trace()
         self.FillSurveys()
         self.FillTranChar()
         self.MakeConnect()
@@ -60,11 +57,9 @@ class SCmain(QMainWindow, Ui_MainWindow):
         for fieldname in ['Project','Site','Year','StatArea','SubArea']:
             item=QListWidgetItem(fieldname)
             self.TransectCharacteristics.addItem(item)
-        #pdb.set_trace()
         self.TransectCharacteristics.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
 
     def MakeConnect(self):
-        #pdb.set_trace()
         self.DoCalcs.clicked.connect(self.Calculations)
         self.QuitBttn.clicked.connect(self.QuitCalcs)
         self.AllSurveys.stateChanged.connect(self.DoAllSurveys)
@@ -80,6 +75,11 @@ class SCmain(QMainWindow, Ui_MainWindow):
             self.GetSelectedSurveys()
         except:
             self.QuitCalcs()
+            
+        #copy stubs of input tables to the output file.
+        dictSelectedSurveys=self.SelectedSurveystoDict()
+        CopyMDB(self.ODB,self.OUTmdb,dictSelectedSurveys)
+        
         print ('\nCalculations Started')
         self.GetSelectedTranChar()
         self.TranClassChar=MetaTransectClass(self.ODB,\
@@ -115,6 +115,7 @@ class SCmain(QMainWindow, Ui_MainWindow):
 
             print('\n' )
             if FMT['Project' ]!='Combined': print('Project:  ',FMT['Project' ])
+            if FMT['Site'    ]!=MinInt:     print('Site:     ',FMT['Site' ])
             if FMT['Year'    ]!=MinInt:     print('Year:     ',FMT['Year'    ])
             if FMT['StatArea']!=MinInt:     print('StatArea: ',FMT['StatArea'] )
             if FMT['SubArea' ]!=MinInt:     print('SubArea:  ',FMT['SubArea' ] )
@@ -135,11 +136,16 @@ class SCmain(QMainWindow, Ui_MainWindow):
 
 
 
-        #if self.TranClassChar.nclass>1:
         print ('\nCombined')
-        self.WriteOverall(SiteEst,SiteCB,CB)
-       
-        print('\ndone MainWindow Line 123')
+        if self.TranClassChar.nclass>1:
+            self.WriteOverall(SiteEst,SiteCB,CB)
+        else:
+            FMT=self.TranClassChar.FormatTranClass(0)
+            dummy=CompositeAsTransectclass(CTC,SiteCB[0]['SampPopDensity'])
+            dummy.WriteCB(self.OUTmdb,FMT,CB=CB)
+            dummy.WriteResults(self.OUTmdb,FMT,self.SourceMeanWeight)
+        
+        print('\ndone MainWindow Line 147')
         return
 
     def WriteOverall(self,SiteEst,SiteCB,CB,nlevel=100):
@@ -155,6 +161,9 @@ class SCmain(QMainWindow, Ui_MainWindow):
 
         #Confidence Bounds
         CBoverall=CalcOverallStats(SiteCB, newq=None,randomize=True,CB=CB,nlevel=nlevel)
+        if nsite==1:
+            CBoverall['PopDensCB']=Naive_CB(SiteEst[0]['PopDens'],CB=CB)
+            CBoverall['BmaDens']  =Naive_CB(SiteEst[0]['BmaDens'],CB=CB)
         for i in range(len(CB)):
             self.OUTmdb.ADDTo_Results_OverallConfBounds(CB[i],\
                            CBoverall['PopDensCB'][i][0],    CBoverall['PopDensCB'][i][1],\
@@ -174,7 +183,6 @@ class SCmain(QMainWindow, Ui_MainWindow):
         self.SelectedSurveys=[]
         year=self.AS.GetYear()
         survey=self.AS.GetSurvey()
-        #pdb.set_trace()
         for index in range(self.AvailSurveys.count()):
             if self.AvailSurveys.item(index).isSelected():
                  self.SelectedSurveys+=[[survey[index],year[index]]]
@@ -197,7 +205,7 @@ class SCmain(QMainWindow, Ui_MainWindow):
         sys.exit(app.exec_())
 
     def DefaultSettings(self):
-        self.NumberBootstrap.insertPlainText('1000')
+        self.NumberBootstrap.insertPlainText('10000')
         self.RandomSeed.insertPlainText('756')
         self.MinDepth.insertPlainText('-1000')
         self.MaxDepth.insertPlainText('1000')
@@ -212,7 +220,12 @@ class SCmain(QMainWindow, Ui_MainWindow):
             self.OUTmdb.ADDTo_SurveyUsed(ss[0],str(ss[1]))
 
        
-
+    def SelectedSurveystoDict(self):
+        '''Convert self.SelectedSurveys as a list of dictionaries'''
+        if isinstance(self.SelectedSurveys[0],dict):
+            return(self.SelectedSurveys)
+        result=[{'Project':t[0], 'Year':t[1]}  for t in self.SelectedSurveys]
+        return(result)
 
 
 if __name__ == "__main__":

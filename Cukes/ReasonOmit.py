@@ -11,7 +11,6 @@ from PyQt4 import QtCore, QtGui
 
 from RejectDialog import RejectDialog
 
-import pdb
 
 
 
@@ -28,7 +27,7 @@ class ReasonOmit(QDialog, RejectDialog):
        
        
     def GetValues(self):
-        self.result=self.UserReason.document().toPlainText()#pdb.set_trace()
+        self.result=self.UserReason.document().toPlainText()
         
 
 
@@ -42,7 +41,6 @@ class ReasonOmit(QDialog, RejectDialog):
 
 
     def OnNoAnimals(self):
-        #pdb.set_trace()
         self.UserReason.clear()
         self.UserReason.insertPlainText('No animals')
         return
@@ -61,7 +59,6 @@ class ReasonOmit(QDialog, RejectDialog):
 
 
     def OnFinished(self):
-        #pdb.set_trace()
         self.GetValues()
         self.close()
         return
@@ -80,7 +77,6 @@ class ReasonOmit(QDialog, RejectDialog):
                 self.ExcludeTransects.item(index).setSelected(False)
             self.OmitAll.setChecked(False)
     def SetTransectNumber(self,TransectNumber=None):
-        #pdb.set_trace()
         if TransectNumber==None:
             self.TransectHeading.setText('All Transects')
         elif TransectNumber=='':

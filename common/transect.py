@@ -38,12 +38,16 @@ class transect:
             self.quad=[]
             self.nquad=0
             self.IndexWithMeas=[]
+            self.self.IndexWithCount=[]
             return
 
         try:
             AllQ=list(range(q[0],1+q[-1]))
         except:
             print('transect 36 key,type(q),q\n',key,type(q),q)
+        
+        self.IndexWithCount=list(map(lambda q2:q2-q[0],q))
+        
         AllC=WCHinterp(q,c,AllQ)
         AllD=WCHinterp(q,d,AllQ)
         try:
@@ -234,52 +238,21 @@ class transect:
         result=len(TempQuad)
         return(result)
       
+    def GetNumSurveyedQuadInDepthRange(self):
+         TempQuad=list(map(lambda i:self.quad[i] , self.IndexWithCount ))
+         TempQuad=list(filter(lambda q: (q.Depth>=self.MinDepth) and (q.Depth<=self.MaxDepth)   ,TempQuad))
+         return(len(TempQuad))
+  
 
 if __name__ == "__main__":
-    databasepath='D:\scratch\Tofino2010Site4.mdb'
+    databasepath='D:\StrippedBioDataBases\RedUrchin_Bio.mdb'
     ODB=OpenDB(databasepath)
+    AvgWeight=[10,20]
     import sys
-    sys.path.append('D:\Coding\AnalysisPrograms2013\PyFunctions\RSU')
+    sys.path.append('D:\Coding\AnalysisPrograms2013\Fossil\working\RSU')
     import RSUQueryFunc
-    from numpy import exp,log
-    def AE(L):return(exp(2.4175+2.754*log(L/30.)+.5*.1222*.1222))
-    def AE(L):return(1)
-    
-    key=12322
+    key=13089
     tran1=transect(ODB,key,RSUQueryFunc,SizeBound=[89])
-    tran1.RandomizeSizeProb(UseDeterm=False)
-    tran1.CalcAbundMeasured(AE)
-    tran1.CalcAvgWeight(AE=AE)
-    tran1.CalcAbundUnMeasured([10,20],UseDeterm=False)
-    tran1.GetAbundance(AE=AE,AverageWeight=[10,20],UseDeterm=False)
-
-    def sum2(x,USL,PB,AvgWeight):
-        result=0.
-        for t in x:
-             try:
-                 result+=t.GetUnMeas.UnMeas.GetAbundance(AvgWeight)[USL][PB]
-             except:
-                 dummy=True
-        return(result)
-    
-    print(tran1.key,tran1.nquad)
-    print(tran1.GetAbundance(AE=AE,AverageWeight=[1,1],UseDeterm=True))
-    print( sum(list(map(lambda q:q.GetMeasAbundance(AE)['USL89']['Pop'],tran1.quad))) )
-    print( sum(list(map(lambda q:q.GetMeasAbundance(AE)['USLinf']['Pop'],tran1.quad))) )    
-    print( sum(list(map(lambda q:q.GetMeasAbundance(AE)['USL89']['Bmass'],tran1.quad))) )
-    print( sum(list(map(lambda q:q.GetMeasAbundance(AE)['USLinf']['Bmass'],tran1.quad))) )
-    print('\n')
-
-    print( sum2(tran1.quad,'USL89' ,'Pop'  ,[1,1]))
-    print( sum2(tran1.quad,'USLinf','Pop'  ,[1,1]))
-    print( sum2(tran1.quad,'USL89' ,'Bmass',[1,1]))
-    print( sum2(tran1.quad,'USLinf','Bmass',[1,1]))
-    print('\n')
-    for q in tran1.quad:
-        print(q.QuadNum,q.GetUnMeasAbundance(AvgWeight=[1,1],SizeProb=None))
-    print('\n')
-    for q in tran1.quad:
-        print(q.QuadNum,q.UnMeas.GetAbundance(AvgWeight=[1,1]))
-    pdb.set_trace()
+    tran1.CalcAbundUnMeasured(AvgWeight,UseDeterm=False)
     print('done transect')
 

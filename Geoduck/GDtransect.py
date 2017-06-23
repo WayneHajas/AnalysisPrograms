@@ -8,7 +8,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from ADO import adoBaseClass as OpenDB
 from transect import transect
 
-import pdb
 
 class GDtransect(transect):
     '''GDtransect(ODB,key,QueryFunc,SizeBound=None,MinDepth=-999,MaxDepth=999)
@@ -131,7 +130,6 @@ class GDtransect(transect):
         except:
             print('GDtransect 70')
             print (self.SurveyDate,NumShow)
-            pdb.set_trace()
             sf=sfp.EstSF(date=self.SurveyDate)
             result=float(NumShow)/sf
         return(result)

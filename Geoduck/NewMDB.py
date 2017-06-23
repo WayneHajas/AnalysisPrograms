@@ -5,13 +5,18 @@
 # 2014-0720
 # In write-transectcs, GIS_Code is left blank if there is no value from the Headers Table.
 
+'''2016-04-19
+    Include AnalyzeSite as a field in the site-results table
+'''
+
 from numpy import ndarray
 import datetime
 import os, sys
 from win32com.client import Dispatch
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from KeyValues import MinInt,KeyValues
-import pdb
+from PrepForMDB import PrepForMDB
+from VersionTime import VersionTime
 
 class NewMDB:
     def __init__(self,OUTmdbName,\
@@ -67,7 +72,8 @@ class NewMDB:
         CreateStatement+='NumberIterations INT, '        
         CreateStatement+='RandomSeed Long, '        
         CreateStatement+='MinDepth DOUBLE, '
-        CreateStatement+='MaxDepth DOUBLE); '
+        CreateStatement+='MaxDepth DOUBLE, '
+        CreateStatement+='VersionDate TIME) '
         
         try:
             self.DB.Execute(CreateStatement )
@@ -79,6 +85,8 @@ class NewMDB:
                              TranClassChar,RunNumber,RunComments,SurveyArea,\
                              NumberTransects,NumberIterations,RandomSeed,\
                              MinDepth,MaxDepth):
+        VersionDate=VersionTime()
+        vy,vm,vd=VersionDate.year,VersionDate.month,VersionDate.day
         ct=datetime.datetime.now()
         y,m,d=ct.year,ct.month,ct.day
         
@@ -87,49 +95,51 @@ class NewMDB:
         query ="insert INTO Results_Header("
         query+=     "ResultKey,Region,SurveyTitle,[Year],RunNumber,RunComments,YearRun,MonthRun,DayRun,"
         query+=      "SurveyArea,NumberTransects, "
-        query+=     "Species,BootstrappingUsed, NumberIterations,RandomSeed,MinDepth,MaxDepth) "
+        query+=     "Species,BootstrappingUsed, NumberIterations,RandomSeed,MinDepth,MaxDepth,VersionDate) "
         query+="Values("
-        query+=str(self.AnalysisKey.GetValue())
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
         query+=","
         try:
-            query+="'"+TranClassChar.GetUniqueVal('GeographicArea')+"'"
+            query+=PrepForMDB(TranClassChar.GetUniqueVal('GeographicArea'))
         except:
-            pdb.set_trace()
-            query+="'"+TranClassChar.GetUniqueVal('GeographicArea')+"'"
+            print('NewMDB 97',TranClassChar.GetUniqueVal('GeographicArea'))
+            query+=PrepForMDB(TranClassChar.GetUniqueVal('GeographicArea'))
         query+=","
         try:
-            query+="'"+TranClassChar.GetUniqueVal('SurveyTitle')+"'"
+            query+=PrepForMDB(TranClassChar.GetUniqueVal('SurveyTitle'))
         except:
-            pdb.set_trace()
-            query+="'"+TranClassChar.GetUniqueVal('SurveyTitle')+"'"
+            print('NewMDB 104',TranClassChar.GetUniqueVal('SurveyTitle') )
+            query+=PrepForMDB(TranClassChar.GetUniqueVal('SurveyTitle'))
         query+=","
-        query+=str(TranClassChar.GetUniqueVal('Year'))
+        query+=PrepForMDB(TranClassChar.GetUniqueVal('Year'))
         query+=","
-        query+=str(RunNumber)
+        query+=PrepForMDB(RunNumber)
         query+=","
-        query+="'"+RunComments+"'"
+        query+=PrepForMDB(RunComments)
         query+=","
-        query+=str(y)
+        query+=PrepForMDB(y)
         query+=","
-        query+=str(m)
+        query+=PrepForMDB(m)
         query+=","
-        query+=str(d)
+        query+=PrepForMDB(d)
         query+=","
-        query+=str(SurveyArea/10000) #Convert to hectares
+        query+=PrepForMDB(SurveyArea/10000) #Convert to hectares
         query+=","
-        query+=str(NumberTransects)
+        query+=PrepForMDB(NumberTransects)
         query+=","
-        query+="'"+'84C'+"'"
+        query+=PrepForMDB('84C')
         query+=","
-        query+=str(int(True)) 
+        query+=PrepForMDB(int(True)) 
         query+=","
-        query+=str(NumberIterations)
+        query+=PrepForMDB(NumberIterations)
         query+=","
-        query+=str(RandomSeed)
+        query+=PrepForMDB(RandomSeed)
         query+=","
-        query+=str(MinDepth)
+        query+=PrepForMDB(MinDepth)
         query+=","
-        query+=str(MaxDepth)
+        query+=PrepForMDB(MaxDepth)
+        query+=","
+        query+="DateSerial( "+str(vy)+","+str(vm)+","+str(vd)+")"
         query+=");"
         try:
             self.DB.Execute(query)
@@ -162,20 +172,20 @@ class NewMDB:
         query+=     "SiteBiomassLow, SiteBiomassHigh "
         query+=") "
         query+="Values("
-        query+=str(self.SiteKey.GetValue())
+        query+=PrepForMDB(self.SiteKey.GetValue())
         query+=","
-        query+=str(self.AnalysisKey.GetValue())
-        query+=","+str(pcConfidenceLevel)
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
+        query+=","+PrepForMDB(pcConfidenceLevel)
         
-        query+="," + str(DensityLow)         +  "," +  str(DensityHigh)
-        query+="," + str(PopulationLow)      +  "," +  str(PopulationHigh)
+        query+="," + PrepForMDB(DensityLow)         +  "," +  PrepForMDB(DensityHigh)
+        query+="," + PrepForMDB(PopulationLow)      +  "," +  PrepForMDB(PopulationHigh)
         
         try:
-            query+="," + str(BiomassPerMLow/1000.) +  "," +  str(BiomassPerMHigh/1000.)
+            query+="," + PrepForMDB(BiomassPerMLow/1000.) +  "," +  PrepForMDB(BiomassPerMHigh/1000.)
         except:
             query+="," + '-32767'                  +  "," +  '-32767'
         try:
-            query+="," + str(SiteBiomassLow/1000.) +  "," +  str(SiteBiomassHigh/1000.)
+            query+="," + PrepForMDB(SiteBiomassLow/1000.) +  "," +  PrepForMDB(SiteBiomassHigh/1000.)
         except:
             query+="," + '-32767'                  +  "," +  '-32767'
         query+=");"
@@ -204,7 +214,8 @@ class NewMDB:
         CreateStatement+='Density DOUBLE, '
         CreateStatement+='Population DOUBLE, '
         CreateStatement+='BiomassPerM DOUBLE, '
-        CreateStatement+='SiteBioMass DOUBLE); '
+        CreateStatement+='SiteBioMass DOUBLE, '
+        CreateStatement+='AnalyzeSite YesNo); '
         
         try:
             self.DB.Execute(CreateStatement)
@@ -218,23 +229,25 @@ class NewMDB:
                       BiomassPerM,SiteBioMass):
         query =    "insert INTO Results_Site(ResultKey, SiteKey, SiteNumber, LOBF, MeanTranLength, "
         query+=    "SiteArea,SiteAreaSE,MeanWt,MeanWtSE,MeanWtSource,NumberTransects,Density, "
-        query+=    "Population,BiomassPerM,SiteBioMass) "
+        query+=    "Population,BiomassPerM,SiteBioMass,AnalyzeSite) "
         query+="Values("
-        query+=str(self.AnalysisKey.GetValue())
-        query+=","+str(self.SiteKey.GetValue(IncrementFirst=True))
-        query+=","+str(SiteNum)
-        query+=","+str(LOBF)
-        query+=","+str(MeanTranLength)
-        query+=","+str(SiteArea/10000.)
-        query+=","+str(SiteAreaSE/10000.)
-        query+=","+str(MeanWt)
-        query+=","+str(MeanWtSE)
-        query+=",'"+str(MeanWtSource)+"'"
-        query+=","+str(NumberTransects)
-        query+=","+str(Density)
-        query+=","+str(Population)
-        query+=","+str(BiomassPerM/1000.)#Convert from grams to kilogram
-        query+=","+str(SiteBioMass/1000./1000.)#Convert from grams to tonnes
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
+        query+=","+PrepForMDB(self.SiteKey.GetValue(IncrementFirst=True))
+        query+=","+PrepForMDB(SiteNum)
+        query+=","+PrepForMDB(LOBF)
+        query+=","+PrepForMDB(MeanTranLength)
+        query+=","+PrepForMDB(SiteArea/10000.)
+        query+=","+PrepForMDB(SiteAreaSE/10000.)
+        query+=","+PrepForMDB(MeanWt)
+        query+=","+PrepForMDB(MeanWtSE)
+        query+=","+PrepForMDB(MeanWtSource)
+        query+=","+PrepForMDB(NumberTransects)
+        query+=","+PrepForMDB(Density)
+        query+=","+PrepForMDB(Population)
+        query+=","+PrepForMDB(BiomassPerM/1000.)#Convert from grams to kilogram
+        query+=","+PrepForMDB(SiteBioMass/1000./1000.)#Convert from grams to tonnes
+        query+=","+PrepForMDB(int(AnalyzeSite))#
+        
         
         query+=");"
         query=query.replace('None','-32767')
@@ -243,7 +256,6 @@ class NewMDB:
         except:
             print('\nNewMDB 219 query\n',query)
             print(' MeanWtSource ', )
-            self.DB.Execute(query)
 
         
 
@@ -262,9 +274,9 @@ class NewMDB:
     def ADDTo_SurveyUsed(self, Location,Year):
         query ="insert INTO Results_SurveyUsed(AnalysisKey,Location,[Year]) "
         query+="Values("
-        query+=str(self.AnalysisKey.GetValue())
-        query+=",'"+Location+"',"
-        query+=str(Year)
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
+        query+=","+PrepForMDB(Location)+"',"
+        query+=PrepForMDB(Year)
         query+=");"
         query=query.replace('inf','1000')
         try:
@@ -319,42 +331,42 @@ class NewMDB:
         
         query+=") "
         query+="Values("
-        query+=str(TransectKey)
+        query+=PrepForMDB(TransectKey)
         query+=","
-        query+=str(SiteKey)
+        query+=PrepForMDB(SiteKey)
         query+=","
-        query+=str(TransectNumber)
+        query+=PrepForMDB(TransectNumber)
         query+=","
-        query+=str(HeaderKey)
+        query+=PrepForMDB(HeaderKey)
         query+=","
-        query+=str(SurveyDate.year)+","+str(SurveyDate.month)+","+str(SurveyDate.day)
+        query+=PrepForMDB(SurveyDate.year)+","+PrepForMDB(SurveyDate.month)+","+PrepForMDB(SurveyDate.day)
         query+=","
-        query+=str(MinDepth)
+        query+=PrepForMDB(MinDepth)
         query+=","
-        query+=str(MaxDepth)
+        query+=PrepForMDB(MaxDepth)
         query+=","
-        query+=str(iTranLength)
+        query+=PrepForMDB(iTranLength)
         query+=","
-        query+=str(NumQuadrats)
+        query+=PrepForMDB(NumQuadrats)
         query+=","
-        query+=str(NumAnimals)
+        query+=PrepForMDB(NumAnimals)
         query+=","
-        query+=str(Density)
+        query+=PrepForMDB(Density)
         query+=","
-        query+=str(BiomassPerM)
+        query+=PrepForMDB(BiomassPerM)
         query+=","
-        query+=str(ShowFactor)
+        query+=PrepForMDB(ShowFactor)
         query+=","
-        query+="'"+DailyFixed+"'"
+        query+=PrepForMDB(DailyFixed)
         query+=","
-        query+=str(OmitTransect)
+        query+=PrepForMDB(OmitTransect)
         query+=","
-        query+="'"+OmitTransectReason+"'"
+        query+=PrepForMDB(OmitTransectReason)
         query+=","
-        query+="'"+TransectComments+"'"
+        query+=PrepForMDB(TransectComments)
         if GIS_Code!=None:
           query+=","
-          query+=str(GIS_Code)
+          query+=PrepForMDB(GIS_Code)
         query+=");"
         query=query.replace('None','-32767')
         try:
@@ -384,12 +396,12 @@ class NewMDB:
     def ADDTo_Results_Overall(self,Density,Population,BiomassPerM,SurveyBioMass):
         query ="insert INTO Results_Overall(ROKey, ResultKey,Density,Population,BiomassPerM,SurveyBioMass) "
         query+="Values("
-        query+=    str(self.ROKey.GetValue(IncrementFirst=True))
-        query+=","+str(self.AnalysisKey.GetValue())
-        query+=","+str(Density)
-        query+=","+str(Population)
-        query+=","+str(BiomassPerM/1000.)
-        query+=","+str(SurveyBioMass/1000000.)
+        query+=    PrepForMDB(self.ROKey.GetValue(IncrementFirst=True))
+        query+=","+PrepForMDB(self.AnalysisKey.GetValue())
+        query+=","+PrepForMDB(Density)
+        query+=","+PrepForMDB(Population)
+        query+=","+PrepForMDB(BiomassPerM/1000.)
+        query+=","+PrepForMDB(SurveyBioMass/1000000.)
         query+=");"
         try:
             self.DB.Execute(query)
@@ -421,17 +433,17 @@ class NewMDB:
         query+=     "SurveyBiomassLow,        SurveyBiomassHigh "
         query+=") "
         query+="Values("
-        query+=str(self.ROKey.GetValue())
-        query+="," + str(pcConfidenceLevel)
-        query+="," + str(DensityLow)         +  "," +  str(DensityHigh)
-        query+="," + str(PopulationLow)         +  "," +  str(PopulationHigh)
+        query+=PrepForMDB(self.ROKey.GetValue())
+        query+="," + PrepForMDB(pcConfidenceLevel)
+        query+="," + PrepForMDB(DensityLow)         +  "," +  PrepForMDB(DensityHigh)
+        query+="," + PrepForMDB(PopulationLow)      +  "," +  PrepForMDB(PopulationHigh)
         
         try:
-            query+="," + str(BiomassPerMLow/1000.) +  "," +  str(BiomassPerMHigh/1000.)
+            query+="," + PrepForMDB(BiomassPerMLow/1000.) +  "," +  PrepForMDB(BiomassPerMHigh/1000.)
         except:
             query+="," + '-32767'                  +  "," +  '-32767'
         try:
-            query+="," + str(SurveyBiomassLow/1000000.) +  "," +  str(SurveyBiomassHigh/1000000.)
+            query+="," + PrepForMDB(SurveyBiomassLow/1000000.) +  "," +  PrepForMDB(SurveyBiomassHigh/1000000.)
         except:
             query+="," + '-32767'                  +  "," +  '-32767'
        

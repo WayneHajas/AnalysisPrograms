@@ -9,7 +9,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from ADO import adoBaseClass as OpenDB
 from GetSurveys import AllSurveys
 from NewMDB import NewMDB
-import pdb
 
 
 class dataODB:

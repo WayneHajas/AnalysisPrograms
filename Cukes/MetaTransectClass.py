@@ -1,3 +1,6 @@
+'''2015-11-17 Modified MetaTransectClass.QueryTranClass to ensure that 
+transects will always be orderd by Headers.key'''
+
 from numpy import ndarray
 from numpy import iinfo,int16
 MinInt=iinfo(int16).min
@@ -5,7 +8,6 @@ import sys,os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from ADO import adoBaseClass as OpenDB
 from SiteInfo import SiteInfo
-import pdb
 
 class MetaTransectClass:
     def __init__(self,ODB,SelectedSurveyYears,SelectedTranChar):
@@ -165,7 +167,7 @@ class MetaTransectClass:
         if self.nclass>1:
             query+=' and '
             query+=self.SpecClass(i)
-        query+=') ;'
+        query+=') order by Headers.Key;'
         return(query)
 
     def GetKey(self,i=None):

@@ -4,7 +4,6 @@ from ADO import adoBaseClass as OpenDB
 from norm import norm
 from numpy import ndarray,array
 from numpy.random import shuffle
-import pdb 
 class ADOWeightVal():
     '''Weight statistics as for values taken form the geoduck-bio database'''
     def __init__(self,ODB,SurveyTitle,Year,SurveySite=None):
@@ -53,7 +52,6 @@ class ADOWeightVal():
         try:
           return(self.RandSource.rvs(n))
         except:
-          pdb.set_trace()
           return(self.RandSource.rvs(n))
 
       # EquiProb is true

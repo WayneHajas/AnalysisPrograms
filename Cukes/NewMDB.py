@@ -1,16 +1,23 @@
+'''
+2015-11-27 Change biomass units to kg for overall results
+
+2015-11-18 Modified to use PrepForMDB instead of str'''
+
+
 # for column types, see http://www.w3schools.com/ado/ado_datatypes.asp
 from numpy import ndarray
 import os, sys
 from win32com.client import Dispatch
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from KeyValues import MinInt,KeyValues
-import pdb
+from VersionTime import VersionTime
+from PrepForMDB import PrepForMDB
 
 class NewMDB:
     def __init__(self,OUTmdbName,\
                  InitAnalysisKey=MinInt,\
                  InitTranCharKey=MinInt):
-
+        self.OUTmdbName=OUTmdbName
         if os.path.exists (OUTmdbName):os.remove (OUTmdbName)
         adox = Dispatch ("ADOX.Catalog")
         CONNECTION_STRING = "Provider=Microsoft.Jet.OLEDB.4.0; data Source=%s" % OUTmdbName
@@ -48,7 +55,8 @@ class NewMDB:
         CreateStatement+='nReps INT, '
         CreateStatement+='rSeed INT, '
         CreateStatement+='MinDepth DOUBLE, '
-        CreateStatement+='MaxDepth DOUBLE) '
+        CreateStatement+='MaxDepth DOUBLE, '
+        CreateStatement+='VersionDate TIME) '
         
         try:
             self.DB.Execute(CreateStatement )
@@ -57,9 +65,12 @@ class NewMDB:
             self.DB.Execute(CreateStatement )            
 
     def ADDTo_Results_Header(self,RunComments,Species,nReps,rSeed,MinDepth,MaxDepth):
-        query ="insert INTO Results_Header(ResultKey,AnalysisDate,RunComments,Species,nReps,rSeed,MinDepth,MaxDepth) "
+        VersionDate=VersionTime()
+        y,m,d=VersionDate.year,VersionDate.month,VersionDate.day
+        
+        query ="insert INTO Results_Header(ResultKey,AnalysisDate,RunComments,Species,nReps,rSeed,MinDepth,MaxDepth,VersionDate) "
         query+="Values("
-        query+=str(self.AnalysisKey.GetValue())
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
         query+=","
         query+="NOW()"
         query+=","
@@ -67,13 +78,15 @@ class NewMDB:
         query+=","
         query+="'"+Species+"'"
         query+=","
-        query+=str(nReps)
+        query+=PrepForMDB(nReps)
         query+=","
-        query+=str(rSeed)
+        query+=PrepForMDB(rSeed)
         query+=","
-        query+=str(MinDepth)
+        query+=PrepForMDB(MinDepth)
         query+=","
-        query+=str(MaxDepth)
+        query+=PrepForMDB(MaxDepth)
+        query+=","
+        query+="DateSerial( "+str(y)+","+str(m)+","+str(d)+")"
         query+=");"
         try:
             self.DB.Execute(query)
@@ -110,12 +123,12 @@ class NewMDB:
         query+=str(pcConfidenceLevel)
         query+="," + str(lowPopLinear)         +  "," +  str(uppPopLinear)
         try:
-            query+="," + str(lowBmassLinear/1000.) +  "," +  str(uppBmassLinear/1000.)
+            query+="," + str(lowBmassLinear/1000.) +  "," +  str(uppBmassLinear/1000.)#Calculations are done in grams.  Divide by 1000 to get kg
         except:
             query+="," + '-32767'                  +  "," +  '-32767'
         query+="," + str(lowPop)         +  "," +  str(uppPop)
         try:
-            query+="," + str(lowBmass/1000.) +  "," +  str(uppBmass/1000.)
+            query+="," + str(lowBmass/1000.) +  "," +  str(uppBmass/1000.)#Calculations are done in grams.  Divide by 1000 to get kg
         except:
             query+="," + '-32767'                  +  "," +  '-32767'
         query+=");"
@@ -179,7 +192,7 @@ class NewMDB:
         query+= ","+str(NumberTransects)
         query+= ","+str(Density)
         query+= ","+str(Population)
-        query+= ","+str(BiomassPerM/1000)
+        query+= ","+str(BiomassPerM/1000)#Calculations are done in grams.  Divide by 1000 to get kg
         query+= ","+str(SiteBioMass/1000)
         
         query+=");"
@@ -317,7 +330,6 @@ class NewMDB:
         query+=","+str(Density)
         query+=","+str(Biomass)
         query+=","+str(OmitTransect)
-        #pdb.set_trace()
         if (OmitTransectReason==None) or (OmitTransectReason==''):
             query+=",''"
         else:
@@ -358,8 +370,8 @@ class NewMDB:
         query+=str(self.AnalysisKey.GetValue())
         query+=","+str(Density)
         query+=","+str(Population)
-        query+=","+str(BiomassPerM/1000.)
-        query+=","+str(SurveyBioMass/1000000.)
+        query+=","+str(BiomassPerM/1000.)  #Calculations are done in grams.  Divide by 1000 to get kg
+        query+=","+str(SurveyBioMass/1000.)
         query+=");"
         try:
             self.DB.Execute(query)
@@ -398,11 +410,11 @@ class NewMDB:
         query+="," + str(PopulationLow)         +  "," +  str(PopulationHigh)
         
         try:
-            query+="," + str(BiomassPerMLow/1000.) +  "," +  str(BiomassPerMHigh/1000.)
+            query+="," + str(BiomassPerMLow/1000.) +  "," +  str(BiomassPerMHigh/1000.)#Calculations are done in grams.  Divide by 1000 to get kg
         except:
             query+="," + '-32767'                  +  "," +  '-32767'
         try:
-            query+="," + str(SurveyBiomassLow/1000000.) +  "," +  str(SurveyBiomassHigh/1000000.)
+            query+="," + str(SurveyBiomassLow/1000.) +  "," +  str(SurveyBiomassHigh/1000.)
         except:
             query+="," + '-32767'                  +  "," +  '-32767'
        

@@ -2,7 +2,6 @@ from numpy import ndarray
 from numpy.random import beta
 
 from datetime import datetime,timedelta
-import pdb
 
 class SFMeas():
     def __init__(self,date,Nshow=None,Nduck=None):
@@ -212,7 +211,6 @@ class SFplot(SFQuad):
             MaxDate=max(list(map(lambda q:q.SFMeas[-1].date,self.quad)))
         except:
             print('SFdate 211')
-            pdb.set_trace()
             MinDate=min(list(map(lambda q:q.SFMeas[0 ].date,self.quad)))
             MaxDate=max(list(map(lambda q:q.SFMeas[-1].date,self.quad)))
         return([MinDate,MaxDate])
@@ -329,7 +327,6 @@ class multiSFplot(SFplot):
         except:
             print('\n SFdate 260')
             print('DateRange\n',DateRange)
-            pdb.set_trace()
             MinDate=min(list(map(lambda x:x[0],DateRange)))
             MaxDate=max(list(map(lambda x:x[1],DateRange)))
         return([MinDate,MaxDate])

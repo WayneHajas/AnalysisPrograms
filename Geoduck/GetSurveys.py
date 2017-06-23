@@ -1,7 +1,6 @@
 import sys,os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from ADO import adoBaseClass as OpenDB
-import pdb
  
 class AllSurveys:
     def __init__(self,ODB):

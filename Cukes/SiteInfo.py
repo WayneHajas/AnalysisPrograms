@@ -12,7 +12,6 @@ from PyQt4 import QtCore, QtGui
 from SiteDialog import SiteDialog
 from ReasonOmit import ReasonOmit
 
-import pdb
 
 
 
@@ -44,7 +43,6 @@ class SiteInfo(QDialog, SiteDialog):
 
     def FillScreenValues(self):
         self.NoMore=True #A logical flag that freezes the display of transects-to-omit
-        #pdb.set_trace()
         self.PreviousSite.setDisabled(self.SiteIndex<=0)
         self.NextSite.setDisabled(self.SiteIndex>=(self.nsite-1))
 
@@ -77,7 +75,6 @@ class SiteInfo(QDialog, SiteDialog):
         self.ExcludeTransects.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
         if self.TransectNumber[self.SiteIndex]==None:return
         if self.TransectNumber[self.SiteIndex]==[]:return
-        #pdb.set_trace()
         for t in range(len(self.TransectNumber[self.SiteIndex])):
             try:
                 item=QListWidgetItem('{:20d} {:20d}'.format(self.TransectNumber[self.SiteIndex][t][0],self.TransectNumber[self.SiteIndex][t][1]    ))
@@ -114,7 +111,6 @@ class SiteInfo(QDialog, SiteDialog):
     
        
     def GetValues(self):
-       #pdb.set_trace()
         CurVal=self.result[self.SiteIndex]
         CurVal['MeanWeight']=float(self.MeanWeight.document().toPlainText())
         CurVal['StErrWeight']=float(self.StErrWeight.document().toPlainText())
@@ -123,7 +119,6 @@ class SiteInfo(QDialog, SiteDialog):
         self.GetKeysToUse()
     	
     def GetKeysToUse(self):
-       #pdb.set_trace()
         KeysToUse=[]        
         for index in range(self.ExcludeTransects.count()):
           if not(self.ExcludeTransects.item(index).isSelected()):
@@ -195,7 +190,6 @@ class SiteInfo(QDialog, SiteDialog):
             self.CoastLengthK.insertPlainText('10')
 
     def FixStErrCLK(self):
-       #pdb.set_trace()
         if self.StErrCLM.document().toPlainText()=='':return
         if self.StErrCLM.document().toPlainText()=='.':return
         try:
@@ -214,7 +208,6 @@ class SiteInfo(QDialog, SiteDialog):
             self.StErrCLK.insertPlainText('1')
 
     def FixStErrCLM(self):
-       #pdb.set_trace()
         if self.StErrCLK.document().toPlainText()=='':return
         if self.StErrCLK.document().toPlainText()=='.':return
         try:
@@ -251,7 +244,6 @@ class SiteInfo(QDialog, SiteDialog):
             self.StErrWeight.insertPlainText('26.6')
 
     def OnNext(self):
-       #pdb.set_trace()
         self.GetValues()
         self.SiteIndex+=1
         self.NoMore=False #A logical flag that freezes the display of transects-to-omit
@@ -259,7 +251,6 @@ class SiteInfo(QDialog, SiteDialog):
         self.setCharacteristics(self.SiteIndex)
 
     def OnPrev(self):
-       #pdb.set_trace()
         self.GetValues()
         self.SiteIndex-=1
         self.NoMore=False #A logical flag that freezes the display of transects-to-omit
@@ -276,7 +267,6 @@ class SiteInfo(QDialog, SiteDialog):
         '''No transects are omitted.  Or conversely, all are incorporated into calculations.'''
         if self.NoMore:return
         self.NoMore=True
-        #pdb.set_trace()
 
         for t in range(len(self.TransectNumber[self.SiteIndex])):
             self.TransectNumber[self.SiteIndex][t][3]=''
@@ -290,10 +280,8 @@ class SiteInfo(QDialog, SiteDialog):
         '''All transects are omitted.  Or conversely, none are incorporated into calculations.'''
         if self.NoMore:return
         self.NoMore=True
-        #pdb.set_trace()
        
         self.RO.SetTransectNumber('')
-        #pdb.set_trace()
         self.RO.exec()
         reason=self.RO.result
         for t in range(len(self.TransectNumber[self.SiteIndex])):
@@ -306,7 +294,6 @@ class SiteInfo(QDialog, SiteDialog):
 
     def ExcludeTransectsChanged(self):
         if self.NoMore:return
-        #pdb.set_trace()
         self.NoMore=True
         for t in range(len(self.TransectNumber[self.SiteIndex])):
             try:
@@ -344,9 +331,18 @@ if __name__ == "__main__":
     import sys
     TransectNumber=[[1,2],[3,4]]
     TranChar=['A survey', 'over there','sometime',2013,6,12]
+    TransectNumber=[[[52, 112, 0, '', 2013, 8, 31, 'Cukes deeper = N'], \
+                [53, 111, 0, '', 2013, 8, 31, 'Cukes deeper = Y'], \
+                [55, 110, 0, '', 2013, 8, 31, 'Cukes deeper = Y'], \
+                [56, 109, 0, '', 2013, 8, 31, 'Cukes deeper = N'], \
+                [57, 108, 0, '', 2013, 8, 31, 'Cukes deeper = Y'], \
+                [58, 107, 0, '', 2013, 8, 31, 'Cukes deeper = N.  Halfway across']], \
+                [[63, 113, 0, '', 2013, 8, 31, 'Cukes deeper = Y'], \
+                [64, 114, 0, '', 2013, 8, 31, 'Cukes deeper = Y. Very small cukes, many just above juvenile size.'] ]]
+    TranChar=[[11], [12] ]
     app = QtGui.QApplication(sys.argv)
     Dialog = QtGui.QDialog()
-    ui = SiteInfo(nsite=3,TransectNumber=3*[TransectNumber],TranChar=3*[TranChar])
+    ui = SiteInfo(nsite=2,TransectNumber=TransectNumber,TranChar=TranChar)
     #ui.setupUi(Dialog)
     ui.show()
     sys.exit(app.exec_())

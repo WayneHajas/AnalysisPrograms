@@ -7,6 +7,12 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+'''
+2015-04-23
+I have adjusted the window to distinguish between the column of key-numbers from the Header-Table and the column of transect-numbers.
+A couple of text boxes have been added.  Other items on the window have been re-sized to make room for the new headings.'''
+
+
 from PyQt4 import QtCore, QtGui
 
 try:
@@ -98,18 +104,18 @@ class SiteDialog(object):
         self.label.setObjectName(_fromUtf8("label"))
         
         self.OmitAll = QtGui.QPushButton(Dialog)
-        self.OmitAll.setGeometry(QtCore.QRect(460, 255, 200, 24))
+        self.OmitAll.setGeometry(QtCore.QRect(460, 275, 200, 24))
         self.OmitAll.setStyleSheet(_fromUtf8("font: 8pt \"MS Shell Dlg 2\";"))
         self.OmitAll.setObjectName(_fromUtf8("OmitAll"))
 
         self.IncludeAll = QtGui.QPushButton(Dialog)
-        self.IncludeAll.setGeometry(QtCore.QRect(460, 280, 200, 24))
+        self.IncludeAll.setGeometry(QtCore.QRect(460, 299, 200, 24))
         self.IncludeAll.setStyleSheet(_fromUtf8("font: 8pt \"MS Shell Dlg 2\";"))
         self.IncludeAll.setObjectName(_fromUtf8("IncludeAll"))
 
 
         self.ExcludeTransects = QtGui.QListWidget(Dialog)
-        self.ExcludeTransects.setGeometry(QtCore.QRect(460, 30, 200, 221))
+        self.ExcludeTransects.setGeometry(QtCore.QRect(460, 70, 190, 201)) ##460, 90, 190, 181###
         self.ExcludeTransects.setObjectName(_fromUtf8("ExcludeTransects"))
 
         self.PreviousSite = QtGui.QPushButton(Dialog)
@@ -122,6 +128,46 @@ class SiteDialog(object):
         self.QuitAnal = QtGui.QPushButton(Dialog)
         self.QuitAnal.setGeometry(QtCore.QRect(310, 300, 75, 23))
         self.QuitAnal.setObjectName(_fromUtf8("QuitAnal"))
+
+        self.ExcludeTransectHeader = QtGui.QGroupBox(Dialog)
+        self.ExcludeTransectHeader.setGeometry(QtCore.QRect(460, 12, 191, 55)) #460, 8, 191, 40
+        self.ExcludeTransectHeader.setObjectName(_fromUtf8("ExcludeTransectHeader"))
+        self.splitter = QtGui.QSplitter(self.ExcludeTransectHeader)
+        self.splitter.setGeometry(QtCore.QRect(10, 10, 112, 11)) 
+        self.splitter.setOrientation(QtCore.Qt.Horizontal)
+        self.splitter.setObjectName(_fromUtf8("splitter"))
+        self.TransectNumber = QtGui.QLabel(self.splitter)
+        self.TransectNumber.setMinimumSize(QtCore.QSize(0, 50))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.TransectNumber.setFont(font)
+        self.TransectNumber.setScaledContents(True)
+        self.TransectNumber.setAlignment(QtCore.Qt.AlignCenter)
+        self.TransectNumber.setWordWrap(True)
+        self.TransectNumber.setIndent(0)
+        self.TransectNumber.setObjectName(_fromUtf8("TransectNumber"))
+        self.splitter_2 = QtGui.QSplitter(self.ExcludeTransectHeader)
+        self.splitter_2.setGeometry(QtCore.QRect(30, 20, 125, 26))
+        self.splitter_2.setOrientation(QtCore.Qt.Horizontal)
+        self.splitter_2.setObjectName(_fromUtf8("splitter_2"))
+        self.HeadersKey = QtGui.QLabel(self.splitter_2)
+        self.HeadersKey.setMinimumSize(QtCore.QSize(50, 20))#50, 25
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.HeadersKey.setFont(font)
+        self.HeadersKey.setAlignment(QtCore.Qt.AlignCenter)
+        self.HeadersKey.setWordWrap(True)
+        self.HeadersKey.setIndent(0)
+        self.HeadersKey.setObjectName(_fromUtf8("HeadersKey"))
+        self.TransectNumber_2 = QtGui.QLabel(self.splitter_2)
+        self.TransectNumber_2.setMinimumSize(QtCore.QSize(75, 20)) #75, 30
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.TransectNumber_2.setFont(font)
+        self.TransectNumber_2.setAlignment(QtCore.Qt.AlignCenter)
+        self.TransectNumber_2.setWordWrap(True)
+        self.TransectNumber_2.setIndent(0)
+        self.TransectNumber_2.setObjectName(_fromUtf8("TransectNumber_2"))
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -147,12 +193,24 @@ class SiteDialog(object):
         self.MinDepthLabel_2.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:10pt;\">Estimated Value(metres)</span></p></body></html>", None))
         self.MaxDepthLabel_3.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:10pt;\">(kilometres)</span></p></body></html>", None))
         self.MinDepthLabel_3.setText(_translate("Dialog", "<html><head/><body><p><span style=\" font-size:10pt;\">(kilometres)</span></p></body></html>", None))
-        self.label.setText(_translate("Dialog", "<html><head/><body><p align=\"center\">Transects to EXCLUDE from Analysis</p></body></html>", None))
+        #self.label.setText(_translate("Dialog", "<html><head/><body><p align=\"center\">Transects to EXCLUDE from Analysis</p></body></html>", None))
+        self.ExcludeTransectHeader.setTitle(_translate("Dialog", "Transects to EXCLUDE from Analysis", None))
+        
         self.OmitAll.setText(_translate("Dialog", "Include All Transects In Calculations", None))
         self.IncludeAll.setText(_translate("Dialog", "Exclude All Transects from Calculations", None))
         self.PreviousSite.setText(_translate("Dialog", "Previous", None))
         self.NextSite.setText(_translate("Dialog", "Next", None))
         self.QuitAnal.setText(_translate("Dialog", "Finished", None))
+        
+        self.HeadersKey.setText(_translate("ExcludeTransect", "Headers Key", None))
+        self.TransectNumber_2.setText(_translate("ExcludeTransect", "Transect Number", None))
+
+
+
+ 
+
+
+
 
 if __name__ == "__main__":
     import sys

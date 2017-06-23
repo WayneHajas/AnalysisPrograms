@@ -1,3 +1,9 @@
+'''
+2016-01-29.  Modify some variable names to reflect the change from alpha-30 to intcpt
+
+2015-11-17.  Modified MetaTransectClass.QueryTranClass to ensure that 
+transects will always be orderd by Headers.key'''
+
 from numpy import ndarray
 from numpy import iinfo,int16
 MinInt=iinfo(int16).min
@@ -39,7 +45,7 @@ class MetaTransectClass:
         if CalcAllo:
             for k in range(len(self.key)):
                 DataAllo=DataAllometric(self.ODB,self.key[k]).Allo
-                if DataAllo.mnlw30!=None:
+                if DataAllo.intcpt!=None:
                     self.Allo[k]=DataAllo
         
     def WhereSurveyYear(self):
@@ -74,7 +80,6 @@ class MetaTransectClass:
             query+=', Headers.'
             query+=stc
             query+='  '
-        query=query.replace('Headers.Location' , 'Headers.SurveyTitle as Location')
         query+='  FROM Density INNER JOIN Headers ON Density.HKey = Headers.Key  Where( '
         query+=self.SpecSurvey
         query+=' );'
@@ -93,14 +98,14 @@ class MetaTransectClass:
         CurSpec=self.TranClass[index]
 
         #Default Values
-        result={'Location':'Combined','SubSampleLocation':'Combined',\
+        result={'SurveyTitle':'Combined','SubSampleLocation':'Combined',\
                 'Year':MinInt,'StatArea':MinInt,'SubArea':MinInt,\
                 'InBed':MinInt,'NumTran':MinInt,'NumQuad':MinInt}
         result['NumTran']=len(  self.key[index])
         for c in range(len(CurSpec)):
             try:
-                if self.SelectedTranChar[c]=='Location':
-                    result['Location']=CurSpec[c]
+                if self.SelectedTranChar[c]=='SurveyTitle':
+                    result['SurveyTitle']=CurSpec[c]
                 elif self.SelectedTranChar[c]=='SubSampleLocation':
                     result['SubSampleLocation']=CurSpec[c]
                 elif self.SelectedTranChar[c]=='Year':
@@ -133,7 +138,7 @@ class MetaTransectClass:
         if isinstance(char,(list,ndarray)):
             return(list(map(lambda c,v: self.SingleChar(c,v)    ,char,val)))
         result='(Headers.'+char+'='
-        if (char=='Location') or (char=='SubSampleLocation'):
+        if (char=='SurveyTitle') or (char=='SubSampleLocation'):
             result+='"'+val+'")'
 
         else:
@@ -150,7 +155,7 @@ class MetaTransectClass:
         if self.nclass>1:
             query+=' and '
             query+=self.SpecClass(i)
-        query+=') ;'
+        query+=') order by Headers.Key ;'
         return(query)
 
     def GetKey(self,i):
@@ -166,10 +171,10 @@ if __name__ == "__main__":
     ODB=OpenDB(databasepath)
 
     SelectedSurveyYears=[['Sep03ActivePass',2003],['Oct12Stephenson',2012]]
-    SelectedTranChar=['SubSampleLocation','Year','SubArea','Location']
+    SelectedTranChar=['SubSampleLocation','Year','SubArea','SurveyTitle']
     test=MetaTransectClass(ODB,SelectedSurveyYears,SelectedTranChar,CalcAllo=False)    
     print(test.key)
-    for t in test.Allo:print (t.mnlw30)
+    for t in test.Allo:print (t.intcpt)
     print('\n')
     for t in test.TranClass:print (t)
     print('\n')

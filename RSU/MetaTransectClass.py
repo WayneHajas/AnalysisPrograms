@@ -1,3 +1,6 @@
+'''2015-11-17.  Modified MetaTransectClass.QueryTranClass to ensure that 
+transects will always be orderd by Headers.key'''
+
 from numpy import ndarray
 from numpy import iinfo,int16
 MinInt=iinfo(int16).min
@@ -5,48 +8,52 @@ import sys,os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from ADO import adoBaseClass as OpenDB
 from RSUQueryFunc import AlloEqn
-import pdb
 
 class MetaTransectClass:
-    def __init__(self,ODB,SelectedSurveyTitles,SelectedTranChar):
+    def __init__(self,ODB,SelectedSurveyYears,SelectedTranChar):
         '''MetaTransectClass(SelectedSurveyTitles,SelectedTranChar,CalcAllo=False)
 
           ODB is an ADO connection to a database
-          SelectedSurveyTitles originate from the Headers table
+          SelectedSurveyYears are the cominations of Location and Year
           SelectedTranChar are the transect characteristics that are supposed to be used
           CalcAllo indicates that an attempt should be made to estimate allometric parameters from length-weight data
 
           All the information you need to generate a full transect class!
           '''
         
-        self.SelectedSurveyTitles=SelectedSurveyTitles
+        self.SelectedSurveyYears=SelectedSurveyYears
         self.ODB=ODB
         self.SelectedTranChar=SelectedTranChar
         self.nchar=len(self.SelectedTranChar)
         
-        self.WhereSurveyTitle()
+        self.WhereSurveyYear()
         self.DefineTranClass()
         self.key=list(map(lambda i: self.GetKey(i)  ,range(self.nclass)))
 
         #Establish default allometric
         DA=AlloEqn()
         self.Allo=list(map(lambda k: DA,self.key))
-        #pdb.set_trace()
         
-    def WhereSurveyTitle(self):
-        CurSurvey=self.SelectedSurveyTitles[0]
+    def WhereSurveyYear(self):
+        CurSurvey=self.SelectedSurveyYears[0]
         self.SpecSurvey =' ('
-        self.SpecSurvey+=' (Headers.SurveyTitle="'
-        self.SpecSurvey+=CurSurvey
-        self.SpecSurvey+='")'
+        self.SpecSurvey+='( (Headers.Year='
+        self.SpecSurvey+=str(CurSurvey[1])
+        self.SpecSurvey+=') AND (Headers.Location="'
+        self.SpecSurvey+=CurSurvey[0]
+        self.SpecSurvey+='"))'
 
-        for CurSurvey in self.SelectedSurveyTitles[1:]:
+        for CurSurvey in self.SelectedSurveyYears[1:]:
             self.SpecSurvey+=' or '
                 
-        self.SpecSurvey+=' (Headers.SurveyTitle="'
-        self.SpecSurvey+=CurSurvey
-        self.SpecSurvey+='")'
+            self.SpecSurvey+='( (Headers.Year='
+            self.SpecSurvey+=str(CurSurvey[1])
+            self.SpecSurvey+=') AND (Headers.Location="'
+            self.SpecSurvey+=CurSurvey[0]
+            self.SpecSurvey+='"))'
         self.SpecSurvey+= ' ) '
+
+
 
     def DefineTranClass(self):
         #Trivial Case
@@ -121,12 +128,15 @@ class MetaTransectClass:
     def SingleChar(self,char,val):
         if isinstance(char,(list,ndarray)):
             return(list(map(lambda c,v: self.SingleChar(c,v)    ,char,val)))
-        result='(Headers.'+char+'='
-        if (char=='Location') or (char=='SubSampleLocation') or (char=='SurveyTitle'):
-            result+='"'+val+'")'
-
+        if val is None:
+            result='(Headers.'+char+' is NULL) '
         else:
-            result+=str(val)+')'
+            result='(Headers.'+char+'='
+            if (char=='Location') or (char=='SubSampleLocation') or (char=='SurveyTitle'):
+                result+='"'+val+'")'
+    
+            else:
+                result+=str(val)+')'
         result=result.replace('Headers.Location','Headers.Location')
         return(result)
 
@@ -139,7 +149,7 @@ class MetaTransectClass:
         if self.nclass>1:
             query+=' and '
             query+=self.SpecClass(i)
-        query+=') ;'
+        query+=') order by Headers.Key;'
         return(query)
 
     def GetKey(self,i):

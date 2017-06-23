@@ -29,6 +29,7 @@ class adoBaseClass:
         SQL_query is an optional query '''
         #----------------------------------------------------------------------
         #
+        self.databasepath=databasepath        
         self.oRS=None #Will be given a value when an query is submitted
         self.Nrec=None
         #
@@ -204,7 +205,7 @@ class adoBaseClass:
         while(not(self.rs.EOF )):
             result+=[self.rs.Fields(name).Value]
             self.rs.MoveNext()
-       
+        self.rs.MoveFirst()
         return(result)
 
             

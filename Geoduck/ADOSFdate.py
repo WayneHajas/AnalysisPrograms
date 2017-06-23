@@ -5,7 +5,6 @@ from datetime import datetime,timedelta
 from numpy import ndarray
 
 from SFdate import SFMeas,SFQuad,SFplot,multiSFplot
-import pdb
 
         
 class ADOSFQuad(SFQuad):

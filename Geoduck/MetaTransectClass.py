@@ -1,10 +1,16 @@
+'''2015-11-17.  Modified MetaTransectClass.QueryTranClass to ensure that 
+transects will always be orderd by Headers.key
+
+2016-04-19
+    Require that SiteAnalysisData.AnalyzeSite is a transect-characterisic.  
+'''
+
 from numpy import ndarray
 from numpy import iinfo,int16
 MinInt=iinfo(int16).min
 import sys,os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from ADO import adoBaseClass as OpenDB
-import pdb
 
 class MetaTransectClass:
     def __init__(self,ODB,SelectedSurveyYears):
@@ -24,6 +30,9 @@ class MetaTransectClass:
         
         self.WhereSurveyYear()
         self.DefineTranClass()
+        
+        #Logical array to indicate which sites are supposed to be used in overall statistics
+        self.AnalyzeSite=[ t['AnalyzeSite'] for t in self.TranClass ]
 
         
     def WhereSurveyYear(self):
@@ -58,7 +67,13 @@ class MetaTransectClass:
             query+=', Headers.'
             query+=stc
             query+='  '
-        query+='  FROM Density INNER JOIN Headers ON Density.HKey = Headers.Key  Where( '
+        query+=',SiteAnalysisData.AnalyzeSite '
+        query+='  FROM SiteAnalysisData INNER JOIN (Density INNER JOIN Headers ON Density.HKey = Headers.Key) ON '
+        query+='        (SiteAnalysisData.SurveySite = Headers.SurveySite) AND '
+        query+='        (SiteAnalysisData.SurveyTitle = Headers.SurveyTitle) AND '
+        query+='        (SiteAnalysisData.Year = Headers.Year) '
+        
+        query+='  Where( '
         query+=self.SpecSurvey
         query+=' );'
         try:
@@ -78,6 +93,7 @@ class MetaTransectClass:
             CurClass={}
             for j in range(self.nchar):
                 CurClass[self.SelectedTranChar[j]]=TabTranClass[i][j]
+            CurClass['AnalyzeSite']= (TabTranClass[i][-1]!='n')&(TabTranClass[i][-1]!='N')
             self.TranClass.append(CurClass)
             self.TranClass[-1]['AllKey']=self.GetKey(i=i)
            
@@ -102,7 +118,6 @@ class MetaTransectClass:
                     result['Year']=CurSpec['Year']
             except:
                 print('MetaTransectClass 104')
-                pdb.set_trace()
         result['Key']=self.TranClass[index]['AllKey']
         result['NumTran']=len(result['Key'])
         return(result)
@@ -178,7 +193,7 @@ class MetaTransectClass:
             if SC!=None:
               query+=' and '
               query+=self.SpecClass(i)
-        query+=') ;'
+        query+=') order by Headers.Key ;'
         return(query)
 
     def GetKey(self,i=None):

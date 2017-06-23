@@ -1,3 +1,6 @@
+'''Changes corresponding to #16 in Issue tracker.  Estimated parameter values in allomentric relationship
+changed to reflect WetWgt-field. '''
+
 #Functions to make queries specific to GSU.  There are corresponding units for other animals.
 from numpy import log,exp
 from numpy.random import normal
@@ -44,7 +47,7 @@ pval=[.5]
 for x in CB:pval+=[(1.-x)/2.,.5+x/2.]
 
 class AlloEqn:
-    def __init__(self,alpha=-6.51697106793219225,beta=2.6400052786127439,mngamma=0.0,sdgamma=0,sigmawithin=0.15343724699331349):
+    def __init__(self,alpha=-6.8910094325571833,beta=2.7786949597438473,mngamma=0.0,sdgamma=0,sigmawithin=0.0):
         '''These default values were used with the previous (C+++) version of RUAP.  We have gone
         back to these values for consistency sake.
         

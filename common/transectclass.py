@@ -110,7 +110,12 @@ class transectclass:
         determEst=self.DetermMeanAbund()
         probSample=self.RandAbund(nboot=nboot)
         JackSample=self.GetJackAbund()
-        result=BCA(determEst,probSample,JackSample,p=p)
+        try:
+            result=BCA(determEst,probSample,JackSample,p=p)
+        except:
+            print('transectclass 116\n','self.MinDepth,self.MaxDepth',self.MinDepth,self.MaxDepth,\
+            '\nself.key',list(map(lambda t:  t.key,self.transects)))
+            result=BCA(determEst,probSample,JackSample,p=p)
         return(result)
     def GetSizeLim(self):
         '''Size boundaries in a more tabular form'''
@@ -218,6 +223,11 @@ class transectclass:
             SizeResult['spatial']=CurSpatial
             result[kname]=SizeResult
         return(result)
+      
+    def GetNumSurveyedQuadInDepthRange(self):
+         nbytran=list(map(lambda t:t.GetNumSurveyedQuadInDepthRange()   ,self.transects))
+         return(sum(nbytran))
+         
 
 class SampleTransect(transectclass):
     def __init__(self,tc,ntransect=None,replace=True):

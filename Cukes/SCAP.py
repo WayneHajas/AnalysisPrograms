@@ -5,7 +5,6 @@ from PyQt4 import QtCore
 from PyQt4.QtGui import QApplication
 from InputOutputMDB import dataODB,resultODB
 from SCmain import SCmain
-import pdb
 
 if __name__ == "__main__":
     import sys
@@ -14,6 +13,5 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     ui = SCmain(ODB,OUTmdb)
-    #pdb.set_trace()
     ui.show()
     sys.exit(app.exec_())

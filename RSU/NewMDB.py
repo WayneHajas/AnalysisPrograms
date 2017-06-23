@@ -1,9 +1,15 @@
+'''2015-11-17 Modified to use PrepForMDB instead of str'''
+
+
 # for column types, see http://www.w3schools.com/ado/ado_datatypes.asp
 from numpy import ndarray
 import os, sys
 from win32com.client import Dispatch
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
+sys.path.append('../common')
 from KeyValues import MinInt,KeyValues
+from VersionTime import VersionTime
+import UnitSuffixes as US
+from PrepForMDB import PrepForMDB
 
 class NewMDB:
     def __init__(self,OUTmdbName,\
@@ -32,6 +38,7 @@ class NewMDB:
         self.Create_Results_SizeRange()
         self.Create_Results_TranChar()
         self.Create_Results_SurveyUsed()
+        self.Create_Results_Transect()
 
         self.AnalysisKey=KeyValues(InitValue=InitAnalysisKey)
         self.TranCharKey=KeyValues(InitValue=InitTranCharKey)
@@ -44,8 +51,9 @@ class NewMDB:
         CreateStatement+='AnalysisDate TIME, '
         CreateStatement+='nReps INT, '
         CreateStatement+='rSeed INT, '
-        CreateStatement+='MinDepth DOUBLE, '
-        CreateStatement+='MaxDepth DOUBLE) '
+        CreateStatement+='MinDepth'+US.Metres+ ' DOUBLE, '
+        CreateStatement+='MaxDepth'+US.Metres+ ' DOUBLE, '
+        CreateStatement+='VersionDate TIME); '
         
         try:
             self.DB.Execute(CreateStatement )
@@ -54,24 +62,29 @@ class NewMDB:
             self.DB.Execute(CreateStatement )            
 
     def ADDTo_Analysis(self,nReps,rSeed,MinDepth,MaxDepth):
-        query ="insert INTO Results_Analysis(AnalysisKey,AnalysisDate,nReps,rSeed,MinDepth,MaxDepth) "
+        VersionDate=VersionTime()
+        y,m,d=VersionDate.year,VersionDate.month,VersionDate.day
+        query ="insert INTO Results_Analysis(AnalysisKey,AnalysisDate,nReps,rSeed,"
+        query+='MinDepth'+US.Metres+ ',MaxDepth'+US.Metres+ ',VersionDate) '
         query+="Values("
-        query+=str(self.AnalysisKey.GetValue())
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
         query+=","
         query+="NOW()"
         query+=","
-        query+=str(nReps)
+        query+=PrepForMDB(nReps)
         query+=","
-        query+=str(rSeed)
+        query+=PrepForMDB(rSeed)
         query+=","
-        query+=str(MinDepth)
+        query+=PrepForMDB(MinDepth)
         query+=","
-        query+=str(MaxDepth)
+        query+=PrepForMDB(MaxDepth)
+        query+=","
+        query+="DateSerial( "+str(y)+","+str(m)+","+str(d)+")"
         query+=");"
         try:
             self.DB.Execute(query)
         except:
-            print('\nNewMDB 72 query\n',query)
+            print('\nNewMDB 87 query\n',query)
             self.DB.Execute(query)
  
     def Create_Results_ConfInterval(self):
@@ -79,14 +92,14 @@ class NewMDB:
         CreateStatement+='TranCharKey LONG,'
         CreateStatement+='SizeRangeKey LONG,'
         CreateStatement+='pcConfidenceLevel INT,'
-        CreateStatement+='lowPopLinear DOUBLE, '
-        CreateStatement+='uppPopLinear DOUBLE, '
-        CreateStatement+='lowPopSpatial DOUBLE, '
-        CreateStatement+='uppPopSpatial DOUBLE, '
-        CreateStatement+='lowBmassLinear DOUBLE, '
-        CreateStatement+='uppBmassLinear DOUBLE, '
-        CreateStatement+='lowBmassSpatial DOUBLE, '
-        CreateStatement+='uppBmassSpatial DOUBLE) '
+        CreateStatement+='lowPopLinear'+US.PerMetre+ ' DOUBLE, '
+        CreateStatement+='uppPopLinear'+US.PerMetre+ ' DOUBLE, '
+        CreateStatement+='lowPopSpatial'+US.PerMetreSquared+ ' DOUBLE, '
+        CreateStatement+='uppPopSpatial'+US.PerMetreSquared+ ' DOUBLE, '
+        CreateStatement+='lowBmassLinear'+US.KgPerMetre+ ' DOUBLE, '
+        CreateStatement+='uppBmassLinear'+US.KgPerMetre+ ' DOUBLE, '
+        CreateStatement+='lowBmassSpatial'+US.KgPerMetreSquared+ ' DOUBLE, '
+        CreateStatement+='uppBmassSpatial'+US.KgPerMetreSquared+ ' DOUBLE) '
         self.DB.Execute(CreateStatement )
         
     def ADDTo_ConfInterval(self,TranCharKey,SizeRangeKey,\
@@ -96,36 +109,36 @@ class NewMDB:
                            lowBmassLinear,  uppBmassLinear,\
                            lowBmassSpatial, uppBmassSpatial):
         query ="insert INTO Results_ConfInterval(TranCharKey,SizeRangeKey,pcConfidenceLevel, "
-        query+=     "lowPopLinear,    uppPopLinear, "
-        query+=     "lowPopSpatial,   uppPopSpatial, "
-        query+=     "lowBmassLinear,  uppBmassLinear, "
-        query+=     "lowBmassSpatial, uppBmassSpatial) "
+        query+=     'lowPopLinear'+US.PerMetre+ ',    uppPopLinear'+US.PerMetre+ ', '
+        query+=     'lowPopSpatial'+US.PerMetreSquared+ ',   uppPopSpatial'+US.PerMetreSquared+ ', '
+        query+=     'lowBmassLinear'+US.KgPerMetre+ ',  uppBmassLinear'+US.KgPerMetre+ ', '
+        query+=     'lowBmassSpatial'+US.KgPerMetreSquared+ ', uppBmassSpatial'+US.KgPerMetreSquared+ ') '
         query+="Values("
-        query+=str(TranCharKey)
+        query+=PrepForMDB(TranCharKey)
         query+=","
-        query+=str(SizeRangeKey)
+        query+=PrepForMDB(SizeRangeKey)
         query+=","
-        query+=str(pcConfidenceLevel)
+        query+=PrepForMDB(pcConfidenceLevel)
         query+=","
-        query+=str(lowPopLinear)
+        query+=PrepForMDB(lowPopLinear)
         query+=","
-        query+=                 str(uppPopLinear)
+        query+=PrepForMDB(uppPopLinear)
         query+=","
-        query+=str(lowPopSpatial)
+        query+=PrepForMDB(lowPopSpatial)
         query+=","
-        query+=                 str(uppPopSpatial)
+        query+=                 PrepForMDB(uppPopSpatial)
         query+=","
-        query+=str(lowBmassLinear/1000.)
+        query+=PrepForMDB(lowBmassLinear/1000.)
         query+=","
-        query+=                 str(uppBmassLinear/1000.)
+        query+=                 PrepForMDB(uppBmassLinear/1000.)
         query+=","
         try:
-            query+=str(lowBmassSpatial/1000.)
+            query+=PrepForMDB(lowBmassSpatial/1000.)
         except:
             query+='-32767'
         query+=","
         try:
-            query+=                 str(uppBmassSpatial/1000.)
+            query+=                 PrepForMDB(uppBmassSpatial/1000.)
         except:
             query+=                 '-32767'
         query+=");"
@@ -135,17 +148,17 @@ class NewMDB:
         try:
             self.DB.Execute(query)
         except:
-            print('\nNewMDB 119 query\n',query)
+            print('\nNewMDB 151 query\n',query)
             self.DB.Execute(query)
 
     def Create_Results_EstDens(self):
         CreateStatement ='Create TABLE Results_EstDens ('
         CreateStatement+='TranCharKey LONG,'
         CreateStatement+='SizeRangeKey LONG,'
-        CreateStatement+='PopLinear DOUBLE, '
-        CreateStatement+='PopSpatial DOUBLE, '
-        CreateStatement+='BmassLinear DOUBLE, '
-        CreateStatement+='BmassSpatial DOUBLE) '
+        CreateStatement+='PopLinear'+US.PerMetre+ ' DOUBLE, '
+        CreateStatement+='PopSpatial'+US.PerMetreSquared+ ' DOUBLE, '
+        CreateStatement+='BmassLinear'+US.KgPerMetre+ ' DOUBLE, '
+        CreateStatement+='BmassSpatial'+US.KgPerMetreSquared+ ' DOUBLE) '
         self.DB.Execute(CreateStatement )
 
     def ADDTo_EstDens(self,PopLinear, PopSpatial,BmassLinear,BmassSpatial,TranCharKey=None,SizeKey=None):
@@ -154,20 +167,20 @@ class NewMDB:
         tckey=TranCharKey
         if tckey==None:tckey=self.TranCharKey.GetValue()
         query ="insert INTO Results_EstDens(TranCharKey,SizeRangeKey, "
-        query+=     "PopLinear,   PopSpatial, BmassLinear, BmassSpatial) "
+        query+=     'PopLinear'+US.PerMetre+ ',   PopSpatial'+US.PerMetreSquared+ ', BmassLinear'+US.KgPerMetre+ ', BmassSpatial'+US.KgPerMetreSquared+ ') '
         query+="Values("
-        query+=str(tckey)
+        query+=PrepForMDB(tckey)
         query+=","
-        query+=str(skey)
+        query+=PrepForMDB(skey)
         query+=","
-        query+=str(PopLinear)
+        query+=PrepForMDB(PopLinear)
         query+=","
-        query+=str(PopSpatial)
+        query+=PrepForMDB(PopSpatial)
         query+=","
-        query+=str(BmassLinear/1000.)
+        query+=PrepForMDB(BmassLinear/1000.)
         query+=","
         try:
-            query+=str(BmassSpatial/1000.)
+            query+=PrepForMDB(BmassSpatial/1000.)
         except:
             query+='-32767'
         query+=");"
@@ -183,22 +196,22 @@ class NewMDB:
         CreateStatement ='Create TABLE Results_SizeRange ('
         CreateStatement+='AnalysisKey LONG,'
         CreateStatement+='SizeRangeKey LONG,'
-        CreateStatement+='MinSize DOUBLE, '
-        CreateStatement+='MaxSize DOUBLE) '
+        CreateStatement+='MinSize'+US.Mm+ ' DOUBLE, '
+        CreateStatement+='MaxSize'+US.Mm+ ' DOUBLE) '
         self.DB.Execute(CreateStatement )
         self.SizeMap={}
 
     def ADDTo_SizeRange(self, MinSize,MaxSize):
         query ="insert INTO Results_SizeRange(AnalysisKey,SizeRangeKey, "
-        query+=     "MinSize,MaxSize) "
+        query+=     'MinSize'+US.Mm+ ',MaxSize'+US.Mm+ ') '
         query+="Values("
-        query+=str(self.AnalysisKey.GetValue())
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
         query+=","
-        query+=str(self.SizeRangeKey.GetValue())
+        query+=PrepForMDB(self.SizeRangeKey.GetValue())
         query+=","
-        query+=str(MinSize)
+        query+=PrepForMDB(MinSize)
         query+=","
-        query+=str(MaxSize)
+        query+=PrepForMDB(MaxSize)
         query+=");"
         query=query.replace('inf','1000')
         try:
@@ -216,26 +229,31 @@ class NewMDB:
     def Create_Results_SurveyUsed(self):
         CreateStatement ='Create TABLE Results_SurveyUsed ('
         CreateStatement+='AnalysisKey LONG,'
-        CreateStatement+='SurveyTitle varchar );'        
+        CreateStatement+='Location varchar,'        
+        CreateStatement+='[Year] INT );'        
         try:
             self.DB.Execute(CreateStatement )
         except:
             print('\nNewMDB line 101 CreateStatement\n',CreateStatement)
             self.DB.Execute(CreateStatement )
 
-    def ADDTo_SurveyUsed(self, SurveyTitle):
-        query ="insert INTO Results_SurveyUsed(AnalysisKey,SurveyTitle) "
+    def ADDTo_SurveyUsed(self, Location,Year):
+        query ="insert INTO Results_SurveyUsed(AnalysisKey,Location,[Year]) "
         query+="Values("
-        query+=str(self.AnalysisKey.GetValue())
-        query+=",'"
-        query+=SurveyTitle
-        query+="');"
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
+        query+=","
+        query+=PrepForMDB(Location)
+        query+=","
+        query+=PrepForMDB(Year)
+        query+=");"
         query=query.replace('inf','1000')
         try:
             self.DB.Execute(query)
         except:
             print('\nNewMDB 219 query\n',query)
             self.DB.Execute(query)
+
+
             
 
     def Create_Results_TranChar(self):
@@ -245,12 +263,13 @@ class NewMDB:
         CreateStatement+='SurveyTitle varchar,'        
         CreateStatement+='Location varchar,'        
         CreateStatement+='SiteNum INT,'
-        CreateStatement+='Yr INT,'
+        CreateStatement+='[Year] INT,'
         CreateStatement+='StatArea INT ,'
         CreateStatement+='SubArea INT ,'
         CreateStatement+='InBed INT ,'
-        CreateStatement+='NumTran INT ,'
-        CreateStatement+='TransectArea DOUBLE );'
+        CreateStatement+='Transect_Count INT ,'
+        CreateStatement+='TransectArea'+US.MetresSquared+ ' DOUBLE  ,'
+        CreateStatement+='SurveyedQuadCount INT );'
         
         try:
             self.DB.Execute(CreateStatement )
@@ -259,37 +278,40 @@ class NewMDB:
             self.DB.Execute(CreateStatement )
         self.TranCharMap=[]
 
-    def ADDTo_TranChar(self, SurveyTitle,Location,SiteNum,Year,StatArea,SubArea,InBed,NumTran,\
-                       TransectArea):
-        query ="insert INTO Results_TranChar(AnalysisKey,TranCharKey,SurveyTitle,Location,SiteNum,Yr,StatArea,SubArea,InBed,"
-        query+="NumTran,TransectArea) "
+    def ADDTo_TranChar(self, SurveyTitle,Location,SiteNum,Year,StatArea,SubArea,InBed,Transect_Count,\
+                       TransectArea,SurveyedQuadCount):
+        query ="insert INTO Results_TranChar(AnalysisKey,TranCharKey,SurveyTitle,Location,SiteNum,[Year],StatArea,SubArea,InBed,"
+        query+='Transect_Count,TransectArea'+US.MetresSquared+ ',SurveyedQuadCount) '
         query+="Values("
-        query+=str(self.AnalysisKey.GetValue())
+        query+=PrepForMDB(self.AnalysisKey.GetValue())
         query+=","
-        query+=str(self.TranCharKey.GetValue())
-        query+=",'"
-        query+=SurveyTitle
-        query+="','"
-        query+=Location
-        query+="',"
-        query+=str(SiteNum)
+        query+=PrepForMDB(self.TranCharKey.GetValue())
         query+=","
-        query+=str(Year)
+        query+=PrepForMDB(SurveyTitle)
         query+=","
-        query+=str(StatArea)
+        query+=PrepForMDB(Location)
         query+=","
-        query+=str(SubArea)
+        query+=PrepForMDB(SiteNum)
         query+=","
-        query+=str(InBed)
+        query+=PrepForMDB(Year)
         query+=","
-        query+=str(NumTran)
+        query+=PrepForMDB(StatArea)
         query+=","
-        query+=str(TransectArea)
+        query+=PrepForMDB(SubArea)
+        query+=","
+        query+=PrepForMDB(InBed)
+        query+=","
+        query+=PrepForMDB(Transect_Count)
+        query+=","
+        query+=PrepForMDB(TransectArea)
+        query+=","
+        query+=PrepForMDB(SurveyedQuadCount)
         query+=");"
+        query=query.replace('None','-32768')
         try:
             self.DB.Execute(query)
         except:
-            print('\nNewMDB 279 query\n',query)
+            print('\nNewMDB 314 query\n',query)
             self.DB.Execute(query)
         self.TranCharMap+=[[SurveyTitle,Location,SiteNum,Year,StatArea,SubArea,InBed,self.TranCharKey.GetValue() ]] 
         self.TranCharKey.Increment()
@@ -308,12 +330,48 @@ class NewMDB:
             result= self.TranCharMap[x][-1]
             return(result)
         except:
-            print('\nNewMDB 313')
-            print('[SurveyTitle,Location,SubSampleLocation,Yr,StatArea,SubArea,InBed]',[SurveyTitle,Location,SiteNum,Year,StatArea,SubArea,InBed])
+            print('\nNewMDB 333')
+            print('[SurveyTitle,Location,SubSampleLocation,[Year],StatArea,SubArea,InBed]',[SurveyTitle,Location,SiteNum,Year,StatArea,SubArea,InBed])
             for x in self.TranCharMap:print(x)
-            pdb.set_trace()
         
 
+
+
+    def Create_Results_Transect(self):
+        CreateStatement ='Create TABLE Results_Transect('
+        CreateStatement+='TranCharKey LONG,'
+        CreateStatement+='SizeRangeKey LONG,'
+        CreateStatement+='HeaderKey LONG,'
+        CreateStatement+='TranLength'+US.Metres+ ' INT, '
+        CreateStatement+='Population DOUBLE, '
+        CreateStatement+='Biomass'+US.Kilograms+ ' DOUBLE  );'
+        
+        try:
+            self.DB.Execute(CreateStatement )
+        except:
+            print('\nNewMDB line 352 CreateStatement\n',CreateStatement)
+            self.DB.Execute(CreateStatement )
+   
+
+
+    def ADDTo_Transect(self, TranCharKey,SizeRangeKey,HeaderKey,\
+                       TranLength,Population,Biomass):
+        query ="insert INTO Results_Transect(TranCharKey,SizeRangeKey,HeaderKey, "
+        query+='TranLength'+US.Metres+ ',Population,Biomass'+US.Kilograms+ ') '
+        
+        query+="Values("
+        query+=PrepForMDB(TranCharKey)
+        query+=","+PrepForMDB(SizeRangeKey)
+        query+=","+PrepForMDB(HeaderKey)
+        query+=","+PrepForMDB(TranLength)
+        query+=","+PrepForMDB(Population)
+        query+=","+PrepForMDB(Biomass/1000) #convert from grams to kilograms
+        query+=");"
+        try:
+            self.DB.Execute(query)
+        except:
+            print('\nNewMDB 379 query\n',query)
+            self.DB.Execute(query)
 
 
 

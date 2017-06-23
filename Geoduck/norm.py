@@ -3,7 +3,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'common'))
 from wchNorm import InvNorm
 from numpy.random import normal
 from numpy import ndarray,array
-import pdb
 
 class norm():
     '''This class is a proxy for scipy.stats.norm.
@@ -14,17 +13,20 @@ class norm():
         self.mu=mu
         self.sigma=sigma
 
-    def rvs(self,n=None):
+    def rvs(self,n=None,LowBound=None):
         if self.sigma<1.e-6:
-            if n==None:return(self.mu)
-            return(array(n*[self.mu]))
-        try:
-            return(normal(self.mu,self.sigma,size=n))
-        except:
-            print('\n norm 21')
-            pdb.set_trace()
-            return(normal(self.mu,self.sigma,size=n))
+            if (n==None) and (LowBound!=None):return(max([self.mu,LowBound]))
+            if (n==None) and (LowBound==None):return(self.mu)
+            if (self.mu>LowBound):return(array(n*[self.mu]))
+            return(array(n*[LowBound]))
             
+        Unbounded=normal(self.mu,self.sigma,size=n)
+        if LowBound==None:return(Unbounded)
+        result=list(map(lambda t:max([t,LowBound])   ,Unbounded))
+        return(result)
+   
+       
+      
 
     def isf(self,p):
         if isinstance(p,(list,ndarray)):
@@ -34,9 +36,13 @@ class norm():
         else:
             z=self.mu+self.sigma*InvNorm(1-p)
             return(z)
-    def EquiProbVal(self,n):
+    def EquiProbVal(self,n,LowBound=None):
         p =list(map(lambda i:(i+.5)/float(n),range(n)))
-        result=self.isf(p)
+        Unbounded=self.isf(p)
+        result=Unbounded
+        if LowBound!=None:
+            result=list(map(lambda t:max(t,LowBound)  ,Unbounded))
+        
         return(result)
 
            
@@ -54,9 +60,12 @@ if __name__ == "__main__":
     print(RandSource.isf(.5))
     print(RandSource.isf(p))
     print('\n')
-    RandSource=norm(1,0.)
+    RandSource=norm(0,1.)
     print(RandSource.rvs())
-    print(RandSource.rvs(n=3))
+    print('\n')
+    print(RandSource.EquiProbVal(n=10))
+    print(RandSource.EquiProbVal(n=10,LowBound=0))
+    print('\n')
     print(RandSource.isf(.5))
     print(RandSource.isf(p))
 
