@@ -1,6 +1,11 @@
 '''
 2016-01-29 Modify to use standard form of allometric instead of alpha-30
-2015-11-23 Modify to use CopyMDB.'''
+2015-11-23 Modify to use CopyMDB.
+
+2017-06-26
+Coordinate stat-area and sub-area as transect characteristics.  If sub-area is selected, stat-area is automatically selected as well.
+
+'''
 
 # -*- coding: utf-8 -*-
 
@@ -264,6 +269,7 @@ class Ui_Dialog(object):
         self.DoCalcs.clicked.connect(self.Calculations)
         self.QuitBttn.clicked.connect(self.QuitCalcs)
         self.AllSurveys.stateChanged.connect(self.DoAllSurveys)
+        self.TransectCharacteristics.itemSelectionChanged.connect(self.CoordStatAreaSubArea)
 
     def Calculations(self):
         print ('\nCalculations Started')
@@ -406,6 +412,18 @@ class Ui_Dialog(object):
         else:
             for index in range(self.AvailSurveys.count()):
                 self.AvailSurveys.item(index).setSelected(False)
+            
+    def CoordStatAreaSubArea(self):
+        '''Make sure statarea and subarea are coherent'''
+        #Update list of selected transect-characteristics
+        self.GetSelectedTranChar()
+        
+        #if subarea is selected, force statarea to be selected        
+        if ('SubArea' in self.SelectedTranchar) and not('StatArea' in self.SelectedTranchar) :
+            for index in range(self.TransectCharacteristics.count()):
+                if self.TransectCharacteristics.item(index).text()=='StatArea':
+                    self.TransectCharacteristics.item(index).setSelected(True)
+                    self.GetSelectedTranChar()
             
         
     def QuitCalcs(self):
