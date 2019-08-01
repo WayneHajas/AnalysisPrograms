@@ -1,7 +1,14 @@
 
+'''
+20190731
+    Updated from PyQt4 to PyQt5
+    No intended change to functionality
+    '''
 import sys
-from PyQt4 import QtGui
-from PyQt4.QtCore import *
+from PyQt5 import QtCore,QtGui
+from PyQt5.QtWidgets import QApplication, QLabel,QWidget,QFileDialog
+getOpenFileNames=QFileDialog.getOpenFileNames
+getSaveFileName=QFileDialog.getSaveFileName
 
 import os
 from win32com.client.gencache import EnsureDispatch as Dispatch
@@ -14,18 +21,18 @@ from NewMDB import NewMDB
 class dataODB:
     def __init__(self,prompt="Select !!input!! database file",DefaultDirec="T:\\", FileExt="Access Files (*.mdb *.accdb)"):
 
-        app = QtGui.QApplication(sys.argv)
-        self.w = QtGui.QWidget()
-        self.MDBfile = QtGui.QFileDialog.getOpenFileNamesAndFilter(self.w, prompt,DefaultDirec,FileExt)[0][0]
+        app = QApplication(sys.argv)
+        self.w = QWidget()
+        self.MDBfile = getOpenFileNames(self.w, prompt,DefaultDirec,FileExt)[0][0]
         self.ODB=OpenDB(self.MDBfile)
         del self.w,app
 
 class resultODB:
     def __init__(self,prompt="Select **output** database file",DefaultDirec="c:\\", FileExt="Access Files (*.mdb *.accdb)"):
 
-        app = QtGui.QApplication(sys.argv)
-        self.w = QtGui.QWidget()
-        self.MDBfile = QtGui.QFileDialog.getSaveFileName(self.w, prompt,DefaultDirec,FileExt)
+        app = QApplication(sys.argv)
+        self.w = QWidget()
+        self.MDBfile = QFileDialog.getSaveFileName(self.w, prompt,DefaultDirec,FileExt)[0]
         self.ODB=NewMDB(self.MDBfile)
         del self.w,app
 

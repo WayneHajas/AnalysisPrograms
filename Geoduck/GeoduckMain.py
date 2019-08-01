@@ -1,6 +1,14 @@
 '''2015-11-25
 In Combined-sites, recognize the special case where there is a single-site.
 Combined-results will exactly replicate results for single-site.  Less confusion that way.
+
+2018-05-17
+include self.TranClassChar.AnalyzeSite as input to ADDTo_Results_Site
+
+20190731
+    Updated from PyQt4 to PyQt5
+    No intended change to functionality
+    
 '''
 
 # change made 20140717
@@ -18,9 +26,8 @@ from numpy import inf,iinfo,int16,sqrt,array
 MinInt=iinfo(int16).min
 
 
-from PyQt4.QtGui import QMainWindow, QDialog,QListWidgetItem
-from PyQt4.QtCore import pyqtSignature
-from PyQt4 import QtCore, QtGui
+from PyQt5.QtWidgets  import QMainWindow, QDialog,QListWidgetItem,QAbstractItemView
+from PyQt5 import QtCore, QtGui
 
 
 from MetaTransectClass import MetaTransectClass
@@ -65,7 +72,7 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
         for fn in FullName:
             item=QListWidgetItem(fn)
             self.AvailSurveys.addItem(item)
-        self.AvailSurveys.setSelectionMode(QtGui.QAbstractItemView.MultiSelection)
+        self.AvailSurveys.setSelectionMode(QAbstractItemView.MultiSelection)
 
 
     def DefaultSettings(self):
@@ -147,7 +154,8 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
                                        CTC.GetAvgAbundance(),
                                        CTC.GetAvgAbundance()*SiteSize.LOBFarea.mu,
                                        CTC.GetAvgAbundance()*CTC.MeanWeight.EstMeanWeight ,
-                                       CTC.GetAvgAbundance()*CTC.MeanWeight.EstMeanWeight*SiteSize.LOBFarea.mu)
+                                       CTC.GetAvgAbundance()*CTC.MeanWeight.EstMeanWeight*SiteSize.LOBFarea.mu,
+                                       self.TranClassChar.AnalyzeSite[i]) 
                                            
 
 
@@ -222,7 +230,8 @@ class GeoduckMain(QMainWindow, GeoduckDialog):
                                        PopDens,
                                        Pop,
                                        BmaDens ,
-                                       Bma) 
+                                       Bma,
+                                       self.TranClassChar.AnalyzeSite[i]) 
          
             SiteEst+=[{'PopDens':PopDens,\
                        'Pop':Pop,\

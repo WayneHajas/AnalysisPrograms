@@ -7,7 +7,11 @@
 
 '''2016-04-19
     Include AnalyzeSite as a field in the site-results table
-'''
+20190731
+    Updated from PyQt4 to PyQt5
+    No intended change to functionality
+    '''
+
 
 from numpy import ndarray
 import datetime
@@ -226,7 +230,7 @@ class NewMDB:
     def ADDTo_Results_Site(self,SiteNum,LOBF,MeanTranLength,SiteArea,SiteAreaSE,\
                       MeanWt,MeanWtSE,MeanWtSource,\
                       NumberTransects,Density,Population,\
-                      BiomassPerM,SiteBioMass):
+                      BiomassPerM,SiteBioMass,AnalyzeSite):
         query =    "insert INTO Results_Site(ResultKey, SiteKey, SiteNumber, LOBF, MeanTranLength, "
         query+=    "SiteArea,SiteAreaSE,MeanWt,MeanWtSE,MeanWtSource,NumberTransects,Density, "
         query+=    "Population,BiomassPerM,SiteBioMass,AnalyzeSite) "
